@@ -19,9 +19,9 @@ export function computeFulcrumScore(input: SymbolFeatureInput): {
   confidence: number;
   explainabilityBreakdown: ExplainabilityBreakdown;
 } {
-  const shortPressure = clamp(input.shortInterestPctFloat * 2.2 + input.borrowFeePct * 1.7);
-  const volumePressure = clamp((input.relativeVolume - 1) * 38);
-  const optionsPressure = clamp(input.optionsVolumeRatio * 18 + input.callPutSkew * 24);
+  const shortPressure = clamp(input.shortInterestPctFloat * 2 + input.borrowFeePct * 1.9 + (input.floatSharesM < 250 ? 6 : 0));
+  const volumePressure = clamp((input.relativeVolume - 1) * 36 + Math.max(0, input.optionsVolumeRatio - 2) * 6);
+  const optionsPressure = clamp(input.optionsVolumeRatio * 20 + input.callPutSkew * 22);
   const catalystPressure = clamp(input.catalystStatus === "active" ? 90 : input.catalystStatus === "watch" ? 58 : 20);
   const liquidityPressure = clamp(
     (input.liquidityTightness === "tight" ? 82 : input.liquidityTightness === "moderate" ? 52 : 28) +
@@ -37,8 +37,8 @@ export function computeFulcrumScore(input: SymbolFeatureInput): {
   };
 
   const weighted =
-    shortPressure * 0.24 +
-    volumePressure * 0.22 +
+    shortPressure * 0.25 +
+    volumePressure * 0.21 +
     optionsPressure * 0.2 +
     catalystPressure * 0.16 +
     liquidityPressure * 0.18;
@@ -49,11 +49,12 @@ export function computeFulcrumScore(input: SymbolFeatureInput): {
     input.sourceFreshnessMinutes <= 5 ? 0 : input.sourceFreshnessMinutes <= 15 ? 4 : input.sourceFreshnessMinutes <= 40 ? 9 : 15;
 
   const confidence = clamp(
-    92 -
+    90 -
       freshnessPenalty -
       (input.catalystStatus === "none" ? 5 : 0) -
       (input.relativeVolume < 1.5 ? 4 : 0) +
-      (input.liquidityTightness === "tight" ? 3 : 0)
+      (input.liquidityTightness === "tight" ? 3 : 0) +
+      (input.optionsVolumeRatio >= 2.4 ? 2 : 0)
   );
 
   return { squeezeScore, confidence, explainabilityBreakdown };

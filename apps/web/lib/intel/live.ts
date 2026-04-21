@@ -1,6 +1,7 @@
 import { cache } from "react";
 
 import { computeFulcrumScore } from "./scoring";
+import { enrichSqueezeSignals } from "./enrichment";
 import { seededSymbols } from "./seed";
 import { getActiveTrackedSymbols } from "./universe";
 import { fetchBatchMarketStateWithMeta, hasFmpKey, type FmpMarketState, type ProviderFetchMeta as FmpProviderMeta } from "../providers/fmp";
@@ -21,6 +22,14 @@ type SnapshotPayload = {
 let memoryCache: { expiresAt: number; payload: SnapshotPayload } | null = null;
 
 const ALL_LIVE_FIELDS = ["price", "move1D", "updatedAt", "volume", "relativeVolume", "catalystStatus", "catalystSummary"] as const;
+const ALL_PROXY_FIELDS = [
+  "shortInterestPctFloat",
+  "borrowFeePct",
+  "optionsVolumeRatio",
+  "callPutSkew",
+  "floatSharesM",
+  "liquidityTightness"
+] as const;
 
 type RuntimeProviderStatus = "ok" | "degraded" | "missing_key" | "error";
 
@@ -111,15 +120,38 @@ const normalizeSymbolIntel = async (
   const hasLiveVolume = Boolean(liveMarket && liveMarket.volume > 0);
   const hasLiveRelativeVolume = Boolean(typeof liveMarket?.relativeVolume === "number" && liveMarket.relativeVolume > 0);
   const completenessPenalty = (hasLiveQuote ? 0 : 8) + (hasLiveVolume ? 0 : 4) + (catalyst.hasLiveCatalyst ? 0 : 4);
+  const enrichedSignals =
+    hasLiveQuote || hasLiveRelativeVolume
+      ? enrichSqueezeSignals(seed, {
+          relativeVolume: hasLiveRelativeVolume ? Number(liveMarket?.relativeVolume) : seed.features.relativeVolume,
+          move1D: liveMarket?.move1D ?? seed.move1D,
+          price: liveMarket?.price ?? seed.price,
+          volume: hasLiveVolume ? Number(liveMarket?.volume) : seed.volume,
+          catalystStatus: catalyst.catalystStatus
+        })
+      : {
+          features: {
+            ...seed.features,
+            catalystStatus: catalyst.catalystStatus,
+            sourceFreshnessMinutes
+          },
+          provenance: {
+            shortInterestPctFloat: "fallback",
+            borrowFeePct: "fallback",
+            optionsVolumeRatio: "fallback",
+            callPutSkew: "fallback",
+            floatSharesM: "fallback",
+            liquidityTightness: "fallback"
+          } as const,
+          confidencePenalty: 14
+        };
 
   const scored = computeFulcrumScore({
-    ...seed.features,
-    relativeVolume: hasLiveRelativeVolume ? Number((liveMarket?.relativeVolume as number).toFixed(2)) : seed.features.relativeVolume,
-    catalystStatus: catalyst.catalystStatus,
+    ...enrichedSignals.features,
     sourceFreshnessMinutes
   });
 
-  const confidence = clamp(scored.confidence - completenessPenalty);
+  const confidence = clamp(scored.confidence - completenessPenalty - enrichedSignals.confidencePenalty);
   const symbolRegion = hasLiveQuote ? inferRegionFromSymbol(fmpSymbol) : seed.region;
   const liveFieldCoverage: string[] = [];
 
@@ -140,14 +172,14 @@ const normalizeSymbolIntel = async (
     move1D: liveMarket?.move1D ?? seed.move1D,
     volume: hasLiveVolume ? (liveMarket?.volume as number) : seed.volume,
     relativeVolume: hasLiveRelativeVolume ? Number((liveMarket?.relativeVolume as number).toFixed(2)) : seed.features.relativeVolume,
-    shortInterestPctFloat: seed.features.shortInterestPctFloat,
-    borrowFeePct: seed.features.borrowFeePct,
-    optionsVolumeRatio: seed.features.optionsVolumeRatio,
-    callPutSkew: seed.features.callPutSkew,
-    floatSharesM: seed.features.floatSharesM,
+    shortInterestPctFloat: enrichedSignals.features.shortInterestPctFloat,
+    borrowFeePct: enrichedSignals.features.borrowFeePct,
+    optionsVolumeRatio: enrichedSignals.features.optionsVolumeRatio,
+    callPutSkew: enrichedSignals.features.callPutSkew,
+    floatSharesM: enrichedSignals.features.floatSharesM,
     catalystStatus: catalyst.catalystStatus,
     catalystSummary: catalyst.catalystSummary,
-    liquidityTightness: seed.features.liquidityTightness,
+    liquidityTightness: enrichedSignals.features.liquidityTightness,
     squeezeScore: scored.squeezeScore,
     confidence,
     explainabilityBreakdown: scored.explainabilityBreakdown,
@@ -157,7 +189,8 @@ const normalizeSymbolIntel = async (
     sourceFreshnessMinutes,
     updatedAt: freshestObservedAt ? freshestObservedAt.toISOString() : seed.updatedAt,
     dataOrigin,
-    liveFieldCoverage
+    liveFieldCoverage,
+    signalProvenance: enrichedSignals.provenance
   };
 };
 
@@ -252,7 +285,8 @@ const buildLiveStatus = (
   cacheStatus: LiveStatus["cacheStatus"]
 ): LiveStatus => {
   const liveBacked = ALL_LIVE_FIELDS.filter((field) => liveFieldSet.has(field));
-  const fallbackDerived = ["shortInterestPctFloat", "borrowFeePct", "optionsVolumeRatio", "callPutSkew", "floatSharesM", "liquidityTightness"];
+  const proxyDerived = [...ALL_PROXY_FIELDS];
+  const fallbackDerived: string[] = [];
   const unavailable: string[] = [];
   const overallMode: LiveStatus["overallMode"] = mode === "live" ? "live" : mode === "hybrid-fallback" ? "partial" : "fallback";
   const note = runtime.notes.length > 0 ? runtime.notes.join(" ") : undefined;
@@ -265,6 +299,7 @@ const buildLiveStatus = (
     generatedAt,
     liveFieldCoverage: {
       liveBacked,
+      proxyDerived,
       fallbackDerived,
       unavailable
     },

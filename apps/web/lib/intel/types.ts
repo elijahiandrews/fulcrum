@@ -34,10 +34,12 @@ export interface SymbolIntel {
   updatedAt: string;
   dataOrigin: "live" | "hybrid-fallback" | "seed";
   liveFieldCoverage: string[];
+  signalProvenance: FieldProvenanceMap;
 }
 
 export interface LiveFieldCoverageSummary {
   liveBacked: string[];
+  proxyDerived: string[];
   fallbackDerived: string[];
   unavailable: string[];
 }
@@ -62,6 +64,17 @@ export interface SymbolFeatureInput {
   liquidityTightness: LiquidityTightness;
   floatSharesM: number;
   sourceFreshnessMinutes: number;
+}
+
+export type SignalProvenance = "live" | "proxy" | "fallback";
+
+export interface FieldProvenanceMap {
+  shortInterestPctFloat: SignalProvenance;
+  borrowFeePct: SignalProvenance;
+  optionsVolumeRatio: SignalProvenance;
+  callPutSkew: SignalProvenance;
+  floatSharesM: SignalProvenance;
+  liquidityTightness: SignalProvenance;
 }
 
 export interface SeedSymbolInput {
@@ -99,6 +112,7 @@ export interface TrackedUniverseSummary {
   activeTrackedSymbols: number;
   regionBreakdown: Record<TrackedSymbolEntry["region"], number>;
   priorityBreakdown: Record<UniversePriorityTier, number>;
+  sectorBreakdown?: Record<string, number>;
 }
 
 export interface FulcrumAlert {

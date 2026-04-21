@@ -204,10 +204,77 @@ const seedBySymbol: Record<string, Omit<SeedSymbolInput, "symbol" | "companyName
   }
 };
 
+const regionBasePrice: Record<SeedSymbolInput["region"], number> = {
+  US: 24,
+  Europe: 31,
+  Asia: 52
+};
+
+const tierProfile = {
+  core: { score: 79, confidence: 76, relVol: 3.8, short: 21, borrow: 9.5, options: 2.8, skew: 1.27, floatM: 420 },
+  watch: { score: 66, confidence: 69, relVol: 2.9, short: 14, borrow: 6.1, options: 2.1, skew: 1.14, floatM: 690 },
+  experimental: { score: 53, confidence: 63, relVol: 2.1, short: 8.2, borrow: 3.2, options: 1.7, skew: 1.05, floatM: 980 }
+} as const;
+
+const hashSymbol = (symbol: string): number =>
+  symbol
+    .split("")
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+const buildGeneratedSeed = (input: {
+  symbol: string;
+  region: SeedSymbolInput["region"];
+  priorityTier: "core" | "watch" | "experimental";
+  monitoringRationale: string;
+}): Omit<SeedSymbolInput, "symbol" | "companyName" | "region" | "exchange"> => {
+  const hash = hashSymbol(input.symbol);
+  const profile = tierProfile[input.priorityTier];
+  const freshness = 4 + (hash % 24);
+  const scoreDrift = (hash % 8) - 3;
+  const confidenceDrift = (hash % 7) - 3;
+  const relVolDrift = ((hash % 6) - 2) * 0.2;
+
+  const price = Number((regionBasePrice[input.region] + (hash % 35) + (hash % 100) / 100).toFixed(2));
+  const move1D = Number((((hash % 12) - 4) * 0.9).toFixed(1));
+  const volume = Math.max(900_000, 1_200_000 + (hash % 80) * 850_000);
+  const previousScore = Number((profile.score + scoreDrift).toFixed(1));
+  const previousConfidence = Math.max(48, Math.min(92, Math.round(profile.confidence + confidenceDrift)));
+  const relativeVolume = Number(Math.max(1.3, profile.relVol + relVolDrift).toFixed(1));
+  const catalystStatus = input.priorityTier === "core" ? "watch" : input.priorityTier === "watch" ? "watch" : "none";
+  const liquidityTightness = input.priorityTier === "core" ? "tight" : input.priorityTier === "watch" ? "moderate" : "loose";
+
+  return {
+    price,
+    move1D,
+    volume,
+    catalystSummary: input.monitoringRationale,
+    updatedAt: new Date(Date.now() - freshness * 60_000).toISOString(),
+    previousScore,
+    previousConfidence,
+    features: {
+      shortInterestPctFloat: Number((profile.short + (hash % 5)).toFixed(1)),
+      borrowFeePct: Number((profile.borrow + (hash % 4) * 0.6).toFixed(1)),
+      relativeVolume,
+      optionsVolumeRatio: Number((profile.options + (hash % 4) * 0.2).toFixed(1)),
+      callPutSkew: Number((profile.skew + (hash % 3) * 0.06).toFixed(2)),
+      floatSharesM: Number((profile.floatM + (hash % 220)).toFixed(0)),
+      catalystStatus,
+      liquidityTightness,
+      sourceFreshnessMinutes: freshness
+    }
+  };
+};
+
 export const seededSymbols: SeedSymbolInput[] = getActiveTrackedSymbols()
   .map((tracked) => {
-    const defaults = seedBySymbol[tracked.symbol];
-    if (!defaults) return null;
+    const defaults =
+      seedBySymbol[tracked.symbol] ??
+      buildGeneratedSeed({
+        symbol: tracked.symbol,
+        region: tracked.region,
+        priorityTier: tracked.priorityTier,
+        monitoringRationale: tracked.monitoringRationale
+      });
     return {
       symbol: tracked.symbol,
       companyName: tracked.companyName,
@@ -215,5 +282,4 @@ export const seededSymbols: SeedSymbolInput[] = getActiveTrackedSymbols()
       exchange: tracked.exchange,
       ...defaults
     };
-  })
-  .filter((entry): entry is SeedSymbolInput => Boolean(entry));
+  });
