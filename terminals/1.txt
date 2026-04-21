@@ -1,0 +1,6 @@
+---
+pid: 33728
+cwd: |
+  C:\Users\elijx
+---
+PS C:\Users\elijx>
