@@ -47,10 +47,10 @@ export function RequestAccessForm() {
   };
 
   const fieldStyle = {
-    background: "#070b12",
-    color: "#d9e2f2",
-    border: "1px solid #1e2a3f",
-    borderRadius: 8,
+    background: "rgba(255,255,255,0.75)",
+    color: "var(--text)",
+    border: "1px solid var(--panel-border)",
+    borderRadius: 12,
     padding: "0.7rem"
   };
 
@@ -58,10 +58,10 @@ export function RequestAccessForm() {
     return (
       <div className="card" style={{ maxWidth: 680 }}>
         <h3 style={{ marginTop: 0 }}>Access Request Received</h3>
-        <p style={{ color: "#b5c6de" }}>
+        <p style={{ color: "var(--muted)" }}>
           Fulcrum onboarding has logged your request. A product specialist will follow up via your work email after eligibility review.
         </p>
-        <button type="button" className="card" style={{ cursor: "pointer", borderColor: "#7aa2ff", width: "fit-content", padding: "0.6rem 1rem" }} onClick={() => setSubmitted(false)}>
+        <button type="button" className="btn-secondary" style={{ cursor: "pointer", width: "fit-content" }} onClick={() => setSubmitted(false)}>
           Submit Another Request
         </button>
       </div>
@@ -76,28 +76,28 @@ export function RequestAccessForm() {
         value={formState.fullName}
         onChange={(e) => setFormState((prev) => ({ ...prev, fullName: e.target.value }))}
       />
-      {errors.fullName ? <span style={{ color: "#f29c74", fontSize: "0.8rem" }}>{errors.fullName}</span> : null}
+      {errors.fullName ? <span style={{ color: "var(--pressure-high)", fontSize: "0.8rem" }}>{errors.fullName}</span> : null}
       <input
         placeholder="Work email"
         style={fieldStyle}
         value={formState.workEmail}
         onChange={(e) => setFormState((prev) => ({ ...prev, workEmail: e.target.value }))}
       />
-      {errors.workEmail ? <span style={{ color: "#f29c74", fontSize: "0.8rem" }}>{errors.workEmail}</span> : null}
+      {errors.workEmail ? <span style={{ color: "var(--pressure-high)", fontSize: "0.8rem" }}>{errors.workEmail}</span> : null}
       <input
         placeholder="Firm / company"
         style={fieldStyle}
         value={formState.company}
         onChange={(e) => setFormState((prev) => ({ ...prev, company: e.target.value }))}
       />
-      {errors.company ? <span style={{ color: "#f29c74", fontSize: "0.8rem" }}>{errors.company}</span> : null}
+      {errors.company ? <span style={{ color: "var(--pressure-high)", fontSize: "0.8rem" }}>{errors.company}</span> : null}
       <input
         placeholder="Role"
         style={fieldStyle}
         value={formState.role}
         onChange={(e) => setFormState((prev) => ({ ...prev, role: e.target.value }))}
       />
-      {errors.role ? <span style={{ color: "#f29c74", fontSize: "0.8rem" }}>{errors.role}</span> : null}
+      {errors.role ? <span style={{ color: "var(--pressure-high)", fontSize: "0.8rem" }}>{errors.role}</span> : null}
       <textarea
         placeholder="Use case (signal research, risk monitoring, execution support)"
         rows={4}
@@ -105,7 +105,7 @@ export function RequestAccessForm() {
         value={formState.useCase}
         onChange={(e) => setFormState((prev) => ({ ...prev, useCase: e.target.value }))}
       />
-      {errors.useCase ? <span style={{ color: "#f29c74", fontSize: "0.8rem" }}>{errors.useCase}</span> : null}
+      {errors.useCase ? <span style={{ color: "var(--pressure-high)", fontSize: "0.8rem" }}>{errors.useCase}</span> : null}
       <textarea
         placeholder="Optional notes"
         rows={3}
@@ -115,8 +115,8 @@ export function RequestAccessForm() {
       />
       <button
         type="submit"
-        className="card"
-        style={{ cursor: "pointer", borderColor: "#7aa2ff", width: "fit-content", padding: "0.6rem 1rem", opacity: canSubmit ? 1 : 0.95 }}
+        className="btn-primary"
+        style={{ cursor: "pointer", width: "fit-content", opacity: canSubmit ? 1 : 0.95 }}
       >
         Submit Request
       </button>

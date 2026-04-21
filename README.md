@@ -29,6 +29,71 @@ Fulcrum is a web-based squeeze-intelligence platform focused on identifying emer
 7. Open:
    - `http://localhost:3000`
 
+## Production hosting (persistent cloud access)
+
+Fulcrum's web app is deployable to persistent Next.js hosting (recommended: Vercel) so it remains reachable from phone or any device even when local machines are off.
+
+- Run production build locally before deploy: `pnpm --filter @squeeze/web build`
+- Deploy `apps/web` as the Vercel project root (monorepo-aware setup)
+- Configure server-side env vars in Vercel:
+  - `FMP_API_KEY`
+  - `FINNHUB_API_KEY`
+  - `FULCRUM_ACCESS_KEY` (required for gated product routes in public deployments)
+  - `FULCRUM_ALLOW_STATUS_SIMULATION` (`false` in production)
+  - `ORTEX_API_KEY` (optional; enables higher quality direct borrow-fee data)
+  - `ORTEX_DEFAULT_MIC` (optional; defaults to `XNYS`)
+  - `ORTEX_CTB_PATH_TEMPLATE` (optional; only if ORTEX tenant path differs)
+
+## Public sharing model
+
+- Public routes:
+  - `/`
+  - `/request-access`
+  - `/access` (lightweight access wall)
+- Gated routes (protected by `FULCRUM_ACCESS_KEY` + secure cookie):
+  - `/platform`
+  - `/regional-monitor`
+  - `/alerts-center`
+  - `/symbol/[id]`
+  - `/api/platform`, `/api/regions`, `/api/alerts`, `/api/intel*`, `/api/symbols/*`
+
+## Deployment checklist (public internet)
+
+1. **Build check**
+   - Run `pnpm --filter @squeeze/web build` locally and ensure success.
+2. **Platform setup**
+   - Deploy `apps/web` to Vercel (monorepo-aware project).
+3. **Environment variables**
+   - Required: `FMP_API_KEY`, `FINNHUB_API_KEY`, `FULCRUM_ACCESS_KEY`
+   - Recommended: `FULCRUM_ALLOW_STATUS_SIMULATION=false`
+4. **Route behavior validation**
+   - Verify `/` and `/request-access` are public.
+   - Verify gated pages redirect to `/access` without cookie.
+   - Verify authenticated cookie unlocks product pages.
+5. **API posture**
+   - Confirm protected APIs return `401` without access cookie.
+   - Confirm Fulcrum-shaped responses only (no raw provider payload leakage).
+6. **Domain**
+   - Connect custom domain in Vercel and enforce HTTPS.
+7. **Final smoke test**
+   - Verify nav links, access flow, fallback behavior with missing provider keys, and basic data render across core pages.
+
+See `docs/cloud-deployment-checklist.md` for the full deploy checklist and architecture boundaries.
+
+## Cloud architecture boundaries (current pass)
+
+- **Persistent now on web host**
+  - App pages/routes and APIs
+  - Live provider fetch + fallback logic
+  - Cached per-instance snapshot generation
+- **Not durable yet (in-memory only)**
+  - Historical snapshots + alert memory in `apps/web/lib/intel/history.ts`
+  - Any in-memory cache/state resets on instance restart/redeploy
+- **Needs dedicated infrastructure for always-on intelligence memory**
+  - Durable DB persistence for snapshots/alerts
+  - Background worker/cron for continuous refresh independent of request traffic
+  - Optional Redis/shared cache for multi-instance coherence
+
 ## Included MVP deliverables
 
 - Monorepo scaffold for apps/packages

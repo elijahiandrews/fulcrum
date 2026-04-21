@@ -46,9 +46,9 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
   const topDrivers = [...driverRows].sort((a, b) => b[1] - a[1]).slice(0, 2);
 
   return (
-    <main className="container" style={{ padding: "2rem 0 3rem 0" }}>
-      <h2>{row.symbol} Intelligence Brief</h2>
-      <p style={{ color: "#89a0bf", marginTop: 0 }}>{row.companyName} - {row.region} / {row.exchange}</p>
+    <main className="container page">
+      <h2 className="page-title" style={{ fontSize: "2rem" }}>{row.symbol} Intelligence Brief</h2>
+      <p className="page-subtitle">{row.companyName} - {row.region} / {row.exchange}</p>
       <div className="card" style={{ marginBottom: "1rem", display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "0.8rem" }}>
         <div>
           <p style={{ marginTop: 0, marginBottom: "0.2rem", color: "#89a0bf" }}>Squeeze score</p>

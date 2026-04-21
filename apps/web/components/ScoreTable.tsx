@@ -8,24 +8,24 @@ const bandFromScore = (score: number): "low" | "elevated" | "high" | "critical" 
 export function ScoreTable({ rows }: { rows: ScoreRow[] }) {
   return (
     <div className="card">
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.92rem" }}>
+      <table className="intel-table">
         <thead>
-          <tr style={{ color: "#89a0bf", textAlign: "left" }}>
-            <th style={{ paddingBottom: "0.65rem" }}>Symbol</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Squeeze</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Confidence</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Signal Drivers</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Catalyst</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Freshness</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Brief</th>
+          <tr>
+            <th>Symbol</th>
+            <th>Squeeze</th>
+            <th>Confidence</th>
+            <th>Signal Drivers</th>
+            <th>Catalyst</th>
+            <th>Freshness</th>
+            <th>Brief</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => {
             const band = bandFromScore(row.squeezeScore);
             return (
-              <tr key={row.symbol} style={{ borderTop: "1px solid #1e2a3f" }}>
-                <td style={{ padding: "0.7rem 0" }}>
+              <tr key={row.symbol}>
+                <td>
                   <Link href={`/symbol/${row.symbol.toLowerCase()}`} style={{ fontWeight: 600 }}>{row.symbol}</Link>
                   <div style={{ color: "#89a0bf", fontSize: "0.78rem" }}>{row.companyName}</div>
                 </td>

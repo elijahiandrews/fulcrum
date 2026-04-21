@@ -11,10 +11,10 @@ export default async function PlatformPage() {
   const topSector = Object.entries(coverage.sectorBreakdown ?? {})
     .sort((a, b) => b[1] - a[1])[0];
   return (
-    <main className="container" style={{ padding: "2rem 0 3rem 0" }}>
-      <h2 style={{ marginBottom: "0.3rem" }}>Platform Intelligence Console</h2>
-      <p style={{ color: "#89a0bf", marginTop: 0 }}>Explainable squeeze-risk scoring across US, Europe, and Asia books.</p>
-      <div style={{ marginBottom: "1rem", display: "flex", gap: "0.6rem" }}>
+    <main className="container page">
+      <h2 className="page-title" style={{ fontSize: "2rem" }}>Platform Intelligence Console</h2>
+      <p className="page-subtitle">Explainable squeeze-risk scoring across US, Europe, and Asia monitored coverage.</p>
+      <div className="meta-row">
         <span className="chip">{coverage.activeTrackedSymbols} active coverage / {coverage.totalTrackedSymbols} tracked</span>
         <span className="chip">{criticalCount} critical / {highCount} high-risk</span>
         <span className="chip">{avgConfidence.toFixed(0)}% avg confidence</span>

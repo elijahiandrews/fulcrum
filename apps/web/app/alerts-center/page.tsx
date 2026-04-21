@@ -19,12 +19,12 @@ export default async function AlertsCenterPage() {
   const criticalActiveCount = activeAlerts.filter((alert) => alert.severity === "critical").length;
 
   return (
-    <main className="container" style={{ padding: "2rem 0 3rem 0" }}>
-      <h2 style={{ marginBottom: "0.35rem" }}>Alerts Center</h2>
-      <p style={{ color: "#89a0bf", marginTop: 0 }}>
+    <main className="container page">
+      <h2 className="page-title" style={{ fontSize: "2rem" }}>Alerts Center</h2>
+      <p className="page-subtitle">
         Live operational feed for score transitions, options acceleration, and catalyst-linked pressure changes.
       </p>
-      <div style={{ marginBottom: "1rem", display: "flex", gap: "0.6rem" }}>
+      <div className="meta-row">
         <span className="chip">{activeAlerts.length} active alerts</span>
         <span className="chip">{criticalActiveCount} critical active alerts</span>
         <span className="chip">{historicalAlerts.length} historical events</span>

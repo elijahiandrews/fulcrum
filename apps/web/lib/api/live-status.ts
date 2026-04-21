@@ -6,6 +6,9 @@ export type LiveStatusScenario =
   | "both_unavailable";
 
 export const parseLiveStatusScenario = (request: Request): LiveStatusScenario | undefined => {
+  if (process.env.FULCRUM_ALLOW_STATUS_SIMULATION !== "true") {
+    return undefined;
+  }
   const scenario = new URL(request.url).searchParams.get("simulate");
   if (
     scenario === "healthy" ||
