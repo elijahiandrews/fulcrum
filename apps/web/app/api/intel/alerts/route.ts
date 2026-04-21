@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
-import { getAlerts, getLiveStatus } from "../../../../lib/db";
+import { getAlertHistory, getAlerts, getLiveStatusForScenario } from "../../../../lib/db";
+import { parseLiveStatusScenario } from "../../../../lib/api/live-status";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const scenario = parseLiveStatusScenario(request);
   const alerts = await getAlerts();
-  const liveStatus = await getLiveStatus();
-  return NextResponse.json({ data: alerts, count: alerts.length, liveStatus });
+  const history = await getAlertHistory(120);
+  const liveStatus = await getLiveStatusForScenario(scenario);
+  return NextResponse.json({
+    data: alerts,
+    history,
+    count: alerts.length,
+    activeCount: alerts.filter((alert) => alert.status === "active").length,
+    liveStatus
+  });
 }

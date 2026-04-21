@@ -1,3 +1,5 @@
+import { ProviderFetchMeta } from "./types";
+
 export interface FinnhubNewsItem {
   headline: string;
   source: string;
@@ -5,10 +7,10 @@ export interface FinnhubNewsItem {
   summary?: string;
 }
 
-export interface ProviderFetchMeta {
-  ok: boolean;
-  degraded: boolean;
-  reason?: string;
+export interface FinnhubOptionSignals {
+  symbol: string;
+  optionsVolumeRatio?: number;
+  callPutSkew?: number;
 }
 
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
@@ -92,5 +94,59 @@ export async function fetchRecentNewsWithMeta(
   return {
     data,
     meta: data.length > 0 ? { ok: true, degraded: false } : meta.ok ? { ok: false, degraded: true, reason: "empty_payload" } : meta
+  };
+}
+
+type FinnhubOptionChainRow = {
+  optionType?: "call" | "put";
+  volume?: number;
+  openInterest?: number;
+};
+
+type FinnhubOptionChainPayload = {
+  code?: string;
+  data?: FinnhubOptionChainRow[];
+};
+
+export async function fetchOptionSignalsWithMeta(
+  symbol: string
+): Promise<{ data: FinnhubOptionSignals | null; meta: ProviderFetchMeta }> {
+  const { payload, meta } = await fetchFromFinnhub<FinnhubOptionChainPayload>("/stock/option-chain", { symbol });
+  if (!payload || !Array.isArray(payload.data) || payload.data.length === 0) {
+    return { data: null, meta: meta.ok ? { ok: false, degraded: true, reason: "empty_payload" } : meta };
+  }
+
+  let callVolume = 0;
+  let putVolume = 0;
+  let callOi = 0;
+  let putOi = 0;
+  for (const row of payload.data) {
+    const isCall = row.optionType === "call";
+    const volume = typeof row.volume === "number" && Number.isFinite(row.volume) ? Math.max(0, row.volume) : 0;
+    const oi = typeof row.openInterest === "number" && Number.isFinite(row.openInterest) ? Math.max(0, row.openInterest) : 0;
+    if (isCall) {
+      callVolume += volume;
+      callOi += oi;
+    } else {
+      putVolume += volume;
+      putOi += oi;
+    }
+  }
+
+  const totalVolume = callVolume + putVolume;
+  const totalOi = callOi + putOi;
+  if (totalVolume <= 0 || totalOi <= 0) {
+    return { data: null, meta: { ok: false, degraded: true, reason: "insufficient_option_depth" } };
+  }
+
+  const optionsVolumeRatio = totalVolume / totalOi;
+  const callPutSkew = callVolume / Math.max(1, putVolume);
+  return {
+    data: {
+      symbol,
+      optionsVolumeRatio,
+      callPutSkew
+    },
+    meta: { ok: true, degraded: false }
   };
 }

@@ -4,8 +4,16 @@ import { computeFulcrumScore } from "./scoring";
 import { enrichSqueezeSignals } from "./enrichment";
 import { seededSymbols } from "./seed";
 import { getActiveTrackedSymbols } from "./universe";
-import { fetchBatchMarketStateWithMeta, hasFmpKey, type FmpMarketState, type ProviderFetchMeta as FmpProviderMeta } from "../providers/fmp";
-import { fetchRecentNewsWithMeta, hasFinnhubKey, type ProviderFetchMeta as FinnhubProviderMeta } from "../providers/finnhub";
+import { fetchBorrowFeeSignalWithMeta, type BorrowFeeSignal } from "../providers/borrow";
+import {
+  fetchBatchMarketStateWithMeta,
+  fetchBatchSqueezeSignalsWithMeta,
+  hasFmpKey,
+  type FmpMarketState,
+  type FmpSqueezeSignal
+} from "../providers/fmp";
+import { fetchOptionSignalsWithMeta, fetchRecentNewsWithMeta, hasFinnhubKey, type FinnhubOptionSignals } from "../providers/finnhub";
+import { ProviderFetchMeta } from "../providers/types";
 import { CatalystStatus, LiveStatus, SeedSymbolInput, SymbolIntel } from "./types";
 import { recordIntelHistory } from "./history";
 
@@ -44,23 +52,16 @@ const clamp = (value: number, min = 0, max = 100): number => Math.max(min, Math.
 const inferRegionFromSymbol = (symbol: string): SeedSymbolInput["region"] =>
   symbol.endsWith(".L") || symbol.endsWith(".DE") ? "Europe" : symbol.endsWith(".T") ? "Asia" : "US";
 
-const mapProviderSymbol = (seed: SeedSymbolInput): string => {
+const mapSymbolForExchange = (seed: Pick<SeedSymbolInput, "symbol" | "exchange">): string => {
   if (seed.exchange === "LSE") return `${seed.symbol}.L`;
   if (seed.exchange === "XETRA") return `${seed.symbol}.DE`;
   if (seed.exchange === "TSE") return `${seed.symbol}.T`;
   return seed.symbol;
 };
 
-const mapFmpSymbol = (entry: Pick<SeedSymbolInput, "symbol" | "exchange">): string => {
-  if (entry.exchange === "LSE") return `${entry.symbol}.L`;
-  if (entry.exchange === "XETRA") return `${entry.symbol}.DE`;
-  if (entry.exchange === "TSE") return `${entry.symbol}.T`;
-  return entry.symbol;
-};
-
 const normalizeProviderStatus = (
   hasKey: boolean,
-  meta: FmpProviderMeta | null
+  meta: ProviderFetchMeta | null
 ): RuntimeProviderStatus => {
   if (!hasKey) return "missing_key";
   if (!meta) return "degraded";
@@ -72,7 +73,7 @@ const normalizeProviderStatus = (
 const buildCatalyst = async (
   providerSymbol: string,
   fallback: SeedSymbolInput
-): Promise<{ catalystStatus: CatalystStatus; catalystSummary: string; hasLiveCatalyst: boolean; meta: FinnhubProviderMeta | null }> => {
+): Promise<{ catalystStatus: CatalystStatus; catalystSummary: string; hasLiveCatalyst: boolean; meta: ProviderFetchMeta | null }> => {
   const to = new Date();
   const from = new Date(to.getTime() - 24 * 60 * 60 * 1000);
   const result = await fetchRecentNewsWithMeta(providerSymbol, from.toISOString(), to.toISOString());
@@ -94,18 +95,21 @@ const buildCatalyst = async (
     catalystSummary: `${strongest.headline}${source}`,
     hasLiveCatalyst: true,
     meta: result.meta
-  } satisfies { catalystStatus: CatalystStatus; catalystSummary: string; hasLiveCatalyst: boolean; meta: FinnhubProviderMeta | null };
+  } satisfies { catalystStatus: CatalystStatus; catalystSummary: string; hasLiveCatalyst: boolean; meta: ProviderFetchMeta | null };
 };
 
 const normalizeSymbolIntel = async (
   seed: SeedSymbolInput,
   liveMarketMap: Map<string, FmpMarketState>,
-  runtimeCollector?: { finnhubMetas: Array<FinnhubProviderMeta | null> }
+  squeezeSignalMap: Map<string, FmpSqueezeSignal>,
+  optionSignalMap: Map<string, FinnhubOptionSignals>,
+  borrowSignalMap: Map<string, BorrowFeeSignal>,
+  runtimeCollector?: { finnhubMetas: Array<ProviderFetchMeta | null> }
 ): Promise<SymbolIntel> => {
-  const finnhubSymbol = mapProviderSymbol(seed);
-  const fmpSymbol = mapFmpSymbol(seed).toUpperCase();
+  const providerSymbol = mapSymbolForExchange(seed);
+  const fmpSymbol = providerSymbol.toUpperCase();
   const liveMarket = liveMarketMap.get(fmpSymbol) ?? liveMarketMap.get(seed.symbol.toUpperCase());
-  const catalyst = await buildCatalyst(finnhubSymbol, seed);
+  const catalyst = await buildCatalyst(providerSymbol, seed);
   runtimeCollector?.finnhubMetas.push(catalyst.meta);
 
   const now = new Date();
@@ -127,7 +131,10 @@ const normalizeSymbolIntel = async (
           move1D: liveMarket?.move1D ?? seed.move1D,
           price: liveMarket?.price ?? seed.price,
           volume: hasLiveVolume ? Number(liveMarket?.volume) : seed.volume,
-          catalystStatus: catalyst.catalystStatus
+          catalystStatus: catalyst.catalystStatus,
+          directSqueezeSignals: squeezeSignalMap.get(fmpSymbol) ?? squeezeSignalMap.get(seed.symbol.toUpperCase()) ?? null,
+          directOptionSignals: optionSignalMap.get(seed.symbol.toUpperCase()) ?? null,
+          directBorrowSignal: borrowSignalMap.get(seed.symbol.toUpperCase()) ?? null
         })
       : {
           features: {
@@ -143,13 +150,14 @@ const normalizeSymbolIntel = async (
             floatSharesM: "fallback",
             liquidityTightness: "fallback"
           } as const,
-          confidencePenalty: 14
+          confidencePenalty: 14,
+          qualityLabel: "low" as const
         };
 
   const scored = computeFulcrumScore({
     ...enrichedSignals.features,
     sourceFreshnessMinutes
-  });
+  }, enrichedSignals.provenance);
 
   const confidence = clamp(scored.confidence - completenessPenalty - enrichedSignals.confidencePenalty);
   const symbolRegion = hasLiveQuote ? inferRegionFromSymbol(fmpSymbol) : seed.region;
@@ -200,19 +208,18 @@ const fetchSnapshotUncached = async (): Promise<SnapshotPayload> => {
   const missingFinnhub = !hasFinnhubKey();
   if (missingFmp && missingFinnhub) {
     console.info("[fulcrum/live] Missing FMP and FINNHUB keys, serving seeded snapshot.");
-    const symbols = await Promise.all(seededSymbols.map((seed) => normalizeSymbolIntel(seed, new Map())));
+    const symbols = await Promise.all(seededSymbols.map((seed) => normalizeSymbolIntel(seed, new Map(), new Map(), new Map(), new Map())));
     const generatedAt = new Date().toISOString();
     const sorted = symbols.sort((a, b) => b.squeezeScore - a.squeezeScore);
     recordIntelHistory(sorted, generatedAt);
     runtime.fmp = "missing_key";
     runtime.finnhub = "missing_key";
     runtime.notes.push("Both provider keys are missing; seeded fallback snapshot is active.");
-    const liveFieldSet = new Set<string>(symbols.flatMap((row) => row.liveFieldCoverage));
     return {
       symbols: sorted,
       generatedAt,
       mode: "seed",
-      status: buildLiveStatus("seed", generatedAt, liveFieldSet, runtime, "stale")
+      status: buildLiveStatus("seed", generatedAt, sorted, runtime, "stale")
     };
   }
 
@@ -224,14 +231,45 @@ const fetchSnapshotUncached = async (): Promise<SnapshotPayload> => {
       console.info("[fulcrum/live] Finnhub key missing; catalyst enrichment falling back to seeded values.");
     }
 
-    const trackedUniverseSymbols = getActiveTrackedSymbols().map((entry) => mapFmpSymbol(entry));
-    const fmpSymbols = trackedUniverseSymbols.length > 0 ? trackedUniverseSymbols : seededSymbols.map((seed) => mapFmpSymbol(seed));
+    const trackedUniverseSymbols = getActiveTrackedSymbols().map((entry) => mapSymbolForExchange(entry));
+    const fmpSymbols = trackedUniverseSymbols.length > 0 ? trackedUniverseSymbols : seededSymbols.map((seed) => mapSymbolForExchange(seed));
     const marketResult = missingFmp
-      ? { data: new Map<string, FmpMarketState>(), meta: { ok: false, degraded: true, reason: "missing_key" } as FmpProviderMeta }
+      ? { data: new Map<string, FmpMarketState>(), meta: { ok: false, degraded: true, reason: "missing_key" } as ProviderFetchMeta }
       : await fetchBatchMarketStateWithMeta(fmpSymbols);
+    const squeezeSignalResult = missingFmp
+      ? { data: new Map<string, FmpSqueezeSignal>(), meta: { ok: false, degraded: true, reason: "missing_key" } as ProviderFetchMeta }
+      : await fetchBatchSqueezeSignalsWithMeta(fmpSymbols);
     runtime.fmp = normalizeProviderStatus(!missingFmp, marketResult.meta);
+    if (!squeezeSignalResult.meta.ok) runtime.notes.push("Direct short/float feed is partially degraded.");
     const liveMarketMap = marketResult.data;
-    const symbols = await Promise.all(seededSymbols.map((seed) => normalizeSymbolIntel(seed, liveMarketMap)));
+    const squeezeSignalMap = squeezeSignalResult.data;
+    const optionResults = await Promise.all(
+      seededSymbols.map(async (seed) => ({
+        symbol: seed.symbol.toUpperCase(),
+        result: missingFinnhub
+          ? { data: null, meta: { ok: false, degraded: true, reason: "missing_key" } as ProviderFetchMeta }
+          : await fetchOptionSignalsWithMeta(mapSymbolForExchange(seed))
+      }))
+    );
+    const borrowResults = await Promise.all(
+      seededSymbols.map(async (seed) => ({
+        symbol: seed.symbol.toUpperCase(),
+        result: await fetchBorrowFeeSignalWithMeta(seed.symbol)
+      }))
+    );
+    const optionSignalMap = new Map<string, FinnhubOptionSignals>();
+    for (const item of optionResults) {
+      if (item.result.data) optionSignalMap.set(item.symbol, item.result.data);
+    }
+    const borrowSignalMap = new Map<string, BorrowFeeSignal>();
+    for (const item of borrowResults) {
+      if (item.result.data) borrowSignalMap.set(item.symbol, item.result.data);
+    }
+    if (borrowSignalMap.size === 0) runtime.notes.push("Direct borrow-fee feed unavailable; borrow signal remains proxy-derived.");
+    if (!missingFinnhub && optionSignalMap.size === 0) runtime.notes.push("Direct options feed unavailable; options signals remain proxy-derived.");
+    const symbols = await Promise.all(
+      seededSymbols.map((seed) => normalizeSymbolIntel(seed, liveMarketMap, squeezeSignalMap, optionSignalMap, borrowSignalMap))
+    );
     runtime.finnhub = missingFinnhub
       ? "missing_key"
       : symbols.some((row) => row.liveFieldCoverage.includes("catalystStatus"))
@@ -246,7 +284,6 @@ const fetchSnapshotUncached = async (): Promise<SnapshotPayload> => {
     const generatedAt = new Date().toISOString();
     const sorted = symbols.sort((a, b) => b.squeezeScore - a.squeezeScore);
     recordIntelHistory(sorted, generatedAt);
-    const liveFieldSet = new Set<string>(sorted.flatMap((row) => row.liveFieldCoverage));
     if (mode === "hybrid-fallback") {
       runtime.notes.push("Partial live coverage active; seeded fallback fields still used for some symbols.");
     }
@@ -256,23 +293,22 @@ const fetchSnapshotUncached = async (): Promise<SnapshotPayload> => {
       symbols: sorted,
       generatedAt,
       mode,
-      status: buildLiveStatus(mode, generatedAt, liveFieldSet, runtime, "stale")
+      status: buildLiveStatus(mode, generatedAt, sorted, runtime, "stale")
     };
   } catch (error) {
     console.warn("[fulcrum/live] Snapshot generation failed, falling back to seeded mode.", error);
-    const symbols = await Promise.all(seededSymbols.map((seed) => normalizeSymbolIntel(seed, new Map())));
+    const symbols = await Promise.all(seededSymbols.map((seed) => normalizeSymbolIntel(seed, new Map(), new Map(), new Map(), new Map())));
     const generatedAt = new Date().toISOString();
     const sorted = symbols.sort((a, b) => b.squeezeScore - a.squeezeScore);
     recordIntelHistory(sorted, generatedAt);
     runtime.fmp = missingFmp ? "missing_key" : "error";
     runtime.finnhub = missingFinnhub ? "missing_key" : "error";
     runtime.notes.push("Live snapshot generation failed; seeded fallback snapshot is active.");
-    const liveFieldSet = new Set<string>(sorted.flatMap((row) => row.liveFieldCoverage));
     return {
       symbols: sorted,
       generatedAt,
       mode: "seed",
-      status: buildLiveStatus("seed", generatedAt, liveFieldSet, runtime, "stale")
+      status: buildLiveStatus("seed", generatedAt, sorted, runtime, "stale")
     };
   }
 };
@@ -280,13 +316,27 @@ const fetchSnapshotUncached = async (): Promise<SnapshotPayload> => {
 const buildLiveStatus = (
   mode: SnapshotPayload["mode"],
   generatedAt: string,
-  liveFieldSet: Set<string>,
+  symbols: SymbolIntel[],
   runtime: ProviderRuntimeState,
   cacheStatus: LiveStatus["cacheStatus"]
 ): LiveStatus => {
+  const liveFieldSet = new Set<string>(symbols.flatMap((row) => row.liveFieldCoverage));
+  const provenanceStates = ALL_PROXY_FIELDS.reduce<Record<string, "live" | "proxy" | "fallback">>((acc, field) => {
+    const values = symbols.map((row) => row.signalProvenance[field as keyof typeof row.signalProvenance]);
+    acc[field] = values.every((v) => v === "fallback")
+      ? "fallback"
+      : values.every((v) => v === "live")
+        ? "live"
+        : "proxy";
+    return acc;
+  }, {});
   const liveBacked = ALL_LIVE_FIELDS.filter((field) => liveFieldSet.has(field));
-  const proxyDerived = [...ALL_PROXY_FIELDS];
-  const fallbackDerived: string[] = [];
+  const proxyDerived = Object.entries(provenanceStates)
+    .filter(([, status]) => status === "proxy")
+    .map(([field]) => field);
+  const fallbackDerived = Object.entries(provenanceStates)
+    .filter(([, status]) => status === "fallback")
+    .map(([field]) => field);
   const unavailable: string[] = [];
   const overallMode: LiveStatus["overallMode"] = mode === "live" ? "live" : mode === "hybrid-fallback" ? "partial" : "fallback";
   const note = runtime.notes.length > 0 ? runtime.notes.join(" ") : undefined;

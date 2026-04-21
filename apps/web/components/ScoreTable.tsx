@@ -14,14 +14,10 @@ export function ScoreTable({ rows }: { rows: ScoreRow[] }) {
             <th style={{ paddingBottom: "0.65rem" }}>Symbol</th>
             <th style={{ paddingBottom: "0.65rem" }}>Squeeze</th>
             <th style={{ paddingBottom: "0.65rem" }}>Confidence</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Short</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Options</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Volume</th>
+            <th style={{ paddingBottom: "0.65rem" }}>Signal Drivers</th>
             <th style={{ paddingBottom: "0.65rem" }}>Catalyst</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Liquidity Sensitivity</th>
             <th style={{ paddingBottom: "0.65rem" }}>Freshness</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Origin</th>
-            <th style={{ paddingBottom: "0.65rem" }}>Explainability</th>
+            <th style={{ paddingBottom: "0.65rem" }}>Brief</th>
           </tr>
         </thead>
         <tbody>
@@ -35,17 +31,24 @@ export function ScoreTable({ rows }: { rows: ScoreRow[] }) {
                 </td>
                 <td className={`score-${band}`}>{row.squeezeScore.toFixed(1)} ({band})</td>
                 <td>{row.confidence.toFixed(0)}%</td>
-                <td>{row.explainabilityBreakdown.shortPressure.toFixed(1)}</td>
-                <td>{row.explainabilityBreakdown.optionsPressure.toFixed(1)}</td>
-                <td>{row.relativeVolume.toFixed(1)}x</td>
-                <td style={{ textTransform: "capitalize" }}>{row.catalystStatus}</td>
-                <td style={{ textTransform: "capitalize" }}>{row.liquidityTightness}</td>
+                <td>
+                  <div style={{ color: "#d9e2f2" }}>Short {row.explainabilityBreakdown.shortPressure.toFixed(1)}</div>
+                  <div style={{ color: "#d9e2f2" }}>Options {row.explainabilityBreakdown.optionsPressure.toFixed(1)}</div>
+                </td>
+                <td>
+                  <div style={{ textTransform: "capitalize" }}>{row.catalystStatus}</div>
+                  <div style={{ color: "#89a0bf", fontSize: "0.78rem" }}>RelVol {row.relativeVolume.toFixed(1)}x</div>
+                </td>
                 <td>
                   {freshnessLabel(row.sourceFreshnessMinutes)}
                   <div style={{ color: "#89a0bf", fontSize: "0.78rem" }}>{row.region} / {row.exchange}</div>
                 </td>
-                <td style={{ textTransform: "capitalize" }}>{row.dataOrigin.replace("-", " ")}</td>
-                <td style={{ maxWidth: 320, color: "#b5c6de" }}>{row.explanation}</td>
+                <td style={{ maxWidth: 360, color: "#b5c6de" }}>
+                  {row.explanation}
+                  <div style={{ marginTop: "0.3rem", color: "#89a0bf", fontSize: "0.78rem", textTransform: "capitalize" }}>
+                    {row.dataOrigin.replace("-", " ")}
+                  </div>
+                </td>
               </tr>
             );
           })}

@@ -9,6 +9,7 @@ import {
 } from "./intel/history";
 import { getTrackedUniverseSummary } from "./intel/universe";
 import { AlertMemoryRecord, SnapshotChangeEvent, SymbolIntel, SymbolSnapshot } from "./intel/types";
+import { LiveStatusScenario } from "./api/live-status";
 
 export type ScoreRow = SymbolIntel;
 export type AlertRow = Awaited<ReturnType<typeof getAlerts>>[number];
@@ -141,7 +142,7 @@ export async function getCoverageSummary() {
 
 
 export async function getLiveStatusForScenario(
-  scenario?: "healthy" | "missing_fmp" | "finnhub_error" | "fmp_error" | "both_unavailable"
+  scenario?: LiveStatusScenario
 ) {
   const status = await getLiveStatus();
   if (!scenario) return status;

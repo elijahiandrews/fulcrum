@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { getCoverageSummary, getLiveStatusForScenario, getRegionalMonitorRows } from "../../../lib/db";
+import { parseLiveStatusScenario } from "../../../lib/api/live-status";
 
 export async function GET(request: Request) {
-  const scenario = new URL(request.url).searchParams.get("simulate") as
-    | "healthy"
-    | "missing_fmp"
-    | "finnhub_error"
-    | "fmp_error"
-    | "both_unavailable"
-    | null;
+  const scenario = parseLiveStatusScenario(request);
   const rows = await getRegionalMonitorRows();
   const coverage = await getCoverageSummary();
-  const liveStatus = await getLiveStatusForScenario(scenario ?? undefined);
+  const liveStatus = await getLiveStatusForScenario(scenario);
   return NextResponse.json({ data: rows, count: rows.length, coverage, liveStatus });
 }

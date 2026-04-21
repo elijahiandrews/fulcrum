@@ -1,3 +1,5 @@
+import { ProviderFetchMeta } from "./types";
+
 export interface FmpQuote {
   symbol: string;
   name?: string;
@@ -20,10 +22,10 @@ export interface FmpMarketState {
   updatedAt: string;
 }
 
-export interface ProviderFetchMeta {
-  ok: boolean;
-  degraded: boolean;
-  reason?: string;
+export interface FmpSqueezeSignal {
+  symbol: string;
+  shortInterestPctFloat?: number;
+  floatSharesM?: number;
 }
 
 const FMP_BASE_URL = "https://financialmodelingprep.com/api/v3";
@@ -93,6 +95,46 @@ const toMarketState = (quote: FmpQuote): FmpMarketState | null => {
 export async function fetchBatchMarketState(symbols: string[]): Promise<Map<string, FmpMarketState>> {
   const result = await fetchBatchMarketStateWithMeta(symbols);
   return result.data;
+}
+
+interface FmpQuoteShortRow {
+  symbol?: string;
+  shortOutStandingPercent?: number;
+  sharesFloat?: number;
+}
+
+const toSqueezeSignal = (row: FmpQuoteShortRow): FmpSqueezeSignal | null => {
+  const symbol = typeof row.symbol === "string" && row.symbol.length > 0 ? row.symbol.toUpperCase() : null;
+  if (!symbol) return null;
+  const shortInterestPctFloat =
+    typeof row.shortOutStandingPercent === "number" && Number.isFinite(row.shortOutStandingPercent)
+      ? row.shortOutStandingPercent * 100
+      : undefined;
+  const floatSharesM =
+    typeof row.sharesFloat === "number" && Number.isFinite(row.sharesFloat) && row.sharesFloat > 0
+      ? row.sharesFloat / 1_000_000
+      : undefined;
+  return { symbol, shortInterestPctFloat, floatSharesM };
+};
+
+export async function fetchBatchSqueezeSignalsWithMeta(
+  symbols: string[]
+): Promise<{ data: Map<string, FmpSqueezeSignal>; meta: ProviderFetchMeta }> {
+  const normalized = symbols.map((x) => x.trim().toUpperCase()).filter(Boolean);
+  if (normalized.length === 0) return { data: new Map(), meta: { ok: false, degraded: true, reason: "empty_symbol_set" } };
+  const { payload, meta } = await fetchFromFmp<FmpQuoteShortRow[]>(`/quote-short/${encodeURIComponent(normalized.join(","))}`);
+  if (!Array.isArray(payload) || payload.length === 0) {
+    return { data: new Map(), meta: meta.ok ? { ok: false, degraded: true, reason: "empty_payload" } : meta };
+  }
+  const map = new Map<string, FmpSqueezeSignal>();
+  for (const row of payload) {
+    const parsed = toSqueezeSignal(row);
+    if (parsed) map.set(parsed.symbol, parsed);
+  }
+  return {
+    data: map,
+    meta: map.size > 0 ? { ok: true, degraded: false } : { ok: false, degraded: true, reason: "no_valid_rows" }
+  };
 }
 
 export async function fetchBatchMarketStateWithMeta(

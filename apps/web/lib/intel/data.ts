@@ -27,10 +27,20 @@ const explainIntel = (intel: SymbolIntel): string => {
     intel.sourceFreshnessMinutes <= 5
       ? "source stack refreshed within 5 minutes"
       : `source stack is ${intel.sourceFreshnessMinutes} minutes old`;
+  const proxyCount = Object.values(intel.signalProvenance).filter((value) => value === "proxy").length;
+  const fallbackCount = Object.values(intel.signalProvenance).filter((value) => value === "fallback").length;
+  const signalQuality =
+    fallbackCount > 0
+      ? "fallback-heavy"
+      : proxyCount >= 4
+        ? "proxy-derived"
+        : proxyCount > 0
+          ? "mixed-source"
+          : "live-backed";
 
   return `${intel.symbol} sits in the ${band} squeeze-risk band at ${intel.squeezeScore.toFixed(1)} with ${intel.confidence.toFixed(
     0
-  )}% confidence, led by ${firstDriver} and ${secondDriver}. ${intel.catalystSummary} Current ${freshnessText}.`;
+  )}% confidence, led by ${firstDriver} and ${secondDriver}. Signal quality is ${signalQuality}; ${intel.catalystSummary} Current ${freshnessText}.`;
 };
 
 export const getSymbolIntelDataset = async (): Promise<SymbolIntel[]> => {

@@ -1,4 +1,7 @@
 import { FieldProvenanceMap, SeedSymbolInput, SymbolFeatureInput } from "./types";
+import { FmpSqueezeSignal } from "../providers/fmp";
+import { FinnhubOptionSignals } from "../providers/finnhub";
+import { BorrowFeeSignal } from "../providers/borrow";
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
@@ -6,6 +9,7 @@ export interface EnrichedSignalFeatures {
   features: SymbolFeatureInput;
   provenance: FieldProvenanceMap;
   confidencePenalty: number;
+  qualityLabel: "high" | "medium" | "low";
 }
 
 export interface EnrichmentContext {
@@ -14,6 +18,9 @@ export interface EnrichmentContext {
   price: number;
   volume: number;
   catalystStatus: SeedSymbolInput["features"]["catalystStatus"];
+  directSqueezeSignals?: FmpSqueezeSignal | null;
+  directOptionSignals?: FinnhubOptionSignals | null;
+  directBorrowSignal?: BorrowFeeSignal | null;
 }
 
 // These fields are currently not directly provider-backed in V1; derive operational proxies from live market-state context.
@@ -56,6 +63,34 @@ export function enrichSqueezeSignals(seed: SeedSymbolInput, context: EnrichmentC
     liquidityTightness: "proxy"
   };
 
-  // Confidence hit is smaller than full fallback, but reflects proxy-derived signal uncertainty.
-  return { features, provenance, confidencePenalty: 7 };
+  if (typeof context.directSqueezeSignals?.shortInterestPctFloat === "number") {
+    features.shortInterestPctFloat = Number(clamp(context.directSqueezeSignals.shortInterestPctFloat, 1.5, 55).toFixed(2));
+    provenance.shortInterestPctFloat = "live";
+  }
+  if (typeof context.directSqueezeSignals?.floatSharesM === "number") {
+    features.floatSharesM = Number(clamp(context.directSqueezeSignals.floatSharesM, 25, 4000).toFixed(1));
+    provenance.floatSharesM = "live";
+  }
+  if (typeof context.directOptionSignals?.optionsVolumeRatio === "number") {
+    features.optionsVolumeRatio = Number(clamp(context.directOptionSignals.optionsVolumeRatio, 0.8, 6.5).toFixed(2));
+    provenance.optionsVolumeRatio = "live";
+  }
+  if (typeof context.directOptionSignals?.callPutSkew === "number") {
+    features.callPutSkew = Number(clamp(context.directOptionSignals.callPutSkew, 0.55, 2.2).toFixed(2));
+    provenance.callPutSkew = "live";
+  }
+  if (typeof context.directBorrowSignal?.borrowFeePct === "number") {
+    features.borrowFeePct = Number(clamp(context.directBorrowSignal.borrowFeePct, 0.2, 75).toFixed(2));
+    provenance.borrowFeePct = "live";
+  }
+
+  const liveCount = Object.values(provenance).filter((value) => value === "live").length;
+  const penaltyBase = relVol >= 2.2 && absMove >= 2.4 ? 5 : 8;
+  const penalty = Math.max(2, penaltyBase - liveCount);
+  return {
+    features,
+    provenance,
+    confidencePenalty: penalty,
+    qualityLabel: penalty <= 4 ? "high" : penalty <= 7 ? "medium" : "low"
+  };
 }

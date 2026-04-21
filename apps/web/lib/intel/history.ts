@@ -309,7 +309,7 @@ const syncAlertMemoryFromIntel = (
       alertType: "score threshold crossed",
       severity: toBandSeverity(current.squeezeScore),
       confidence: Math.round(current.confidence),
-      explanation: `${intel.symbol} crossed score trigger (${formatNum(previous?.squeezeScore ?? current.squeezeScore)} -> ${formatNum(current.squeezeScore)}).`,
+      explanation: `${intel.symbol} crossed score trigger (${formatNum(previous?.squeezeScore ?? current.squeezeScore)} -> ${formatNum(current.squeezeScore)}) with short pressure ${intel.explainabilityBreakdown.shortPressure.toFixed(1)} and options pressure ${intel.explainabilityBreakdown.optionsPressure.toFixed(1)}.`,
       timestamp
     });
   } else if (current.squeezeScore < CHANGE_THRESHOLDS.resolveScoreFloor) {
@@ -321,7 +321,7 @@ const syncAlertMemoryFromIntel = (
       alertType: "score threshold crossed",
       severity: toBandSeverity(current.squeezeScore),
       confidence: Math.round(current.confidence),
-      explanation: `${intel.symbol} remains above trigger with score now ${formatNum(current.squeezeScore)}.`,
+      explanation: `${intel.symbol} remains above trigger at ${formatNum(current.squeezeScore)}; short pressure ${intel.explainabilityBreakdown.shortPressure.toFixed(1)}, options pressure ${intel.explainabilityBreakdown.optionsPressure.toFixed(1)}.`,
       timestamp
     });
   }
