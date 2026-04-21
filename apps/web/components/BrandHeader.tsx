@@ -1,21 +1,39 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const NAV = [
+  { href: "/platform", label: "Platform" },
+  { href: "/regional-monitor", label: "Regional Monitor" },
+  { href: "/alerts-center", label: "Alerts Center" },
+  { href: "/request-access", label: "Request Access" }
+] as const;
+
+function navActive(pathname: string, href: string): boolean {
+  if (href === "/platform" && pathname.startsWith("/symbol")) return true;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function BrandHeader() {
+  const pathname = usePathname() || "/";
+
   return (
-    <header className="top-nav">
-      <div className="container top-nav-inner">
-        <Link href="/" className="brand-mark">
-          <img src="/fulcrum-mark.svg" alt="Fulcrum" width={26} height={26} />
-          <div>
-            <div className="brand-title">Fulcrum</div>
-            <div className="brand-sub">GMI - Global Market Intelligence</div>
-          </div>
+    <header className="site-header">
+      <div className="container site-header-inner">
+        <Link href="/" className="brand-block brand-block-logo-only" aria-label="Fulcrum Intelligence home">
+          <img src="/fulcrum-mark.svg" alt="" width={28} height={28} aria-hidden />
         </Link>
-        <nav className="nav-links">
-          <Link className="nav-link" href="/platform">Platform</Link>
-          <Link className="nav-link" href="/regional-monitor">Regional Monitor</Link>
-          <Link className="nav-link" href="/alerts-center">Alerts Center</Link>
-          <Link className="nav-link" href="/request-access">Request Access</Link>
+        <nav className="main-nav" aria-label="Primary">
+          {NAV.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`nav-link${navActive(pathname, href) ? " nav-link-active" : ""}`}
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
       </div>
     </header>

@@ -25,7 +25,7 @@ export default async function AccessGatePage({ searchParams }: { searchParams: P
     return (
       <main className="container page">
         <h2 className="page-title" style={{ fontSize: "2rem" }}>Access Granted</h2>
-        <p className="page-subtitle">Your browser already has a valid session for Fulcrum product intelligence routes.</p>
+        <p className="page-subtitle">Your browser already has a valid session for Fulcrum Intelligence product routes.</p>
         <div style={{ marginTop: "1rem", display: "flex", gap: "0.6rem" }}>
           <Link href={nextPath} className="btn-primary">Open Product Surface</Link>
           <form method="post" action="/api/access/logout">
@@ -39,10 +39,10 @@ export default async function AccessGatePage({ searchParams }: { searchParams: P
   return (
     <main className="container page">
       <section className="card" style={{ maxWidth: 620 }}>
-        <div className="chip">Fulcrum Access Gate</div>
+        <div className="chip">Product access</div>
         <h2 className="page-title" style={{ fontSize: "1.9rem", marginTop: "0.7rem" }}>Protected Intelligence Console</h2>
         <p className="page-subtitle" style={{ fontSize: "0.98rem" }}>
-          Fulcrum platform routes are gated for controlled external sharing. Enter your access key to continue.
+          Fulcrum Intelligence routes are gated for controlled external sharing. Enter your access key to continue.
         </p>
         <form method="post" action="/api/access" style={{ marginTop: "1rem", display: "grid", gap: "0.7rem" }}>
           <input type="hidden" name="next" value={nextPath} />

@@ -1,4 +1,4 @@
-import { getAlertHistory, getAlerts, getRecentCatalystChangeEvents, getRecentScoreChangeEvents } from "../../lib/db";
+import { getAlerts } from "../../lib/db";
 
 const tone: Record<string, string> = {
   critical: "score-critical",
@@ -7,72 +7,85 @@ const tone: Record<string, string> = {
   low: "score-low"
 };
 
+const statusBadge = (status: "active" | "resolved" | "downgraded"): string => {
+  if (status === "active") return "badge badge-active";
+  if (status === "resolved") return "badge badge-resolved";
+  return "badge badge-downgraded";
+};
+
 export default async function AlertsCenterPage() {
-  const [alerts, alertHistory, scoreChanges, catalystChanges] = await Promise.all([
-    getAlerts(),
-    getAlertHistory(40),
-    getRecentScoreChangeEvents(undefined, 8),
-    getRecentCatalystChangeEvents(undefined, 8)
-  ]);
+  const alerts = await getAlerts();
   const activeAlerts = alerts.filter((alert) => alert.status === "active");
-  const historicalAlerts = alertHistory.filter((alert) => alert.status !== "active");
-  const criticalActiveCount = activeAlerts.filter((alert) => alert.severity === "critical").length;
+  const historicalAlerts = alerts.filter((alert) => alert.status !== "active");
 
   return (
     <main className="container page">
-      <h2 className="page-title" style={{ fontSize: "2rem" }}>Alerts Center</h2>
-      <p className="page-subtitle">
-        Live operational feed for score transitions, options acceleration, and catalyst-linked pressure changes.
-      </p>
-      <div className="meta-row">
-        <span className="chip">{activeAlerts.length} active alerts</span>
-        <span className="chip">{criticalActiveCount} critical active alerts</span>
-        <span className="chip">{historicalAlerts.length} historical events</span>
+      <div className="terminal-bar">
+        <div>
+          <div className="terminal-kicker">Operational feed</div>
+          <h1 className="page-title" style={{ fontSize: "1.85rem", marginBottom: 0 }}>
+            Alerts center
+          </h1>
+        </div>
+        <span className="chip">
+          {activeAlerts.length} active · {historicalAlerts.length} cleared / adjusted
+        </span>
       </div>
+      <p className="page-subtitle">
+        Threshold crossings and state transitions emitted from the same Fulcrum Intelligence snapshot engine as Platform — score, tape, options, and
+        catalyst channels.
+      </p>
       <section className="card" style={{ marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>Active Alerts</h3>
-        {activeAlerts.length === 0 ? <p style={{ marginTop: 0, color: "#89a0bf" }}>No active alerts at current thresholds.</p> : null}
+        <h2 className="section-title" style={{ marginTop: 0 }}>
+          Active alerts
+        </h2>
+        {activeAlerts.length === 0 ? <p style={{ marginTop: 0, color: "var(--muted)" }}>No active alerts at current thresholds.</p> : null}
         {activeAlerts.map((a) => (
-          <div key={a.id} style={{ padding: "0.65rem 0", borderTop: "1px solid #1e2a3f" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "0.6rem", flexWrap: "wrap" }}>
-              <p style={{ margin: 0 }}><strong>{a.symbol}</strong> - {a.companyName}</p>
-              <span className={tone[a.severity]} style={{ fontWeight: 600 }}>{a.severity.toUpperCase()}</span>
+          <div key={a.id} style={{ padding: "0.75rem 0", borderTop: "1px solid var(--panel-border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
+              <p style={{ margin: 0 }}>
+                <strong>{a.symbol}</strong> — {a.companyName}
+              </p>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+                <span className={statusBadge(a.status)}>{a.status}</span>
+                <span className={tone[a.severity]} style={{ fontWeight: 700, fontSize: "0.78rem" }}>
+                  {a.severity.toUpperCase()}
+                </span>
+              </div>
             </div>
-            <p style={{ margin: "0.25rem 0", color: "#b5c6de" }}>
-              {a.alertType} - {a.confidence}% confidence - {new Date(a.timestamp).toLocaleString()}
+            <p style={{ margin: "0.35rem 0", color: "var(--muted2)", fontSize: "0.88rem" }}>
+              <strong>{a.alertType}</strong> — {a.confidence}% model confidence — {new Date(a.timestamp).toLocaleString()}
             </p>
-            <p style={{ marginTop: 0 }}>{a.explanation}</p>
-          </div>
-        ))}
-      </section>
-      <section className="card" style={{ marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>Recent / Resolved History</h3>
-        {historicalAlerts.length === 0 ? <p style={{ marginTop: 0, color: "#89a0bf" }}>No resolved or downgraded alerts yet.</p> : null}
-        {historicalAlerts.map((a) => (
-          <div key={a.id} style={{ padding: "0.65rem 0", borderTop: "1px solid #1e2a3f" }}>
-            <p style={{ margin: 0 }}>
-              <strong>{a.symbol}</strong> - {a.alertType} - <span style={{ textTransform: "capitalize" }}>{a.status}</span>
-            </p>
-            <p style={{ margin: "0.2rem 0", color: "#89a0bf" }}>
-              {new Date(a.updatedAt).toLocaleString()} - {a.confidence}% confidence
-            </p>
-            <p style={{ marginTop: 0 }}>{a.explanation}</p>
+            <p style={{ marginTop: 0, color: "var(--text)" }}>{a.explanation}</p>
           </div>
         ))}
       </section>
       <section className="card">
-        <h3 style={{ marginTop: 0 }}>Recent Meaningful Changes</h3>
-        <p style={{ marginTop: 0, color: "#89a0bf" }}>
-          Latest score and catalyst-state transitions captured by the history layer.
-        </p>
-        {[...scoreChanges, ...catalystChanges]
-          .sort((a, b) => +new Date(b.capturedAt) - +new Date(a.capturedAt))
-          .slice(0, 10)
-          .map((event, idx) => (
-            <p key={`${event.symbol}-${event.type}-${idx}`} style={{ margin: "0.4rem 0", color: "#b5c6de" }}>
-              <strong>{event.symbol}</strong> - {event.message} ({new Date(event.capturedAt).toLocaleString()})
+        <h2 className="section-title" style={{ marginTop: 0 }}>
+          Recent / resolved history
+        </h2>
+        {historicalAlerts.length === 0 ? (
+          <p style={{ marginTop: 0, color: "var(--muted)" }}>No resolved or downgraded alerts in the current memory window.</p>
+        ) : null}
+        {historicalAlerts.map((a) => (
+          <div key={a.id} style={{ padding: "0.75rem 0", borderTop: "1px solid var(--panel-border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
+              <p style={{ margin: 0 }}>
+                <strong>{a.symbol}</strong> — {a.companyName}
+              </p>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+                <span className={statusBadge(a.status)}>{a.status}</span>
+                <span className={tone[a.severity]} style={{ fontWeight: 700, fontSize: "0.78rem" }}>
+                  {a.severity.toUpperCase()}
+                </span>
+              </div>
+            </div>
+            <p style={{ margin: "0.35rem 0", color: "var(--muted2)", fontSize: "0.88rem" }}>
+              <strong>{a.alertType}</strong> — {new Date(a.timestamp).toLocaleString()} — {a.confidence}% confidence
             </p>
-          ))}
+            <p style={{ marginTop: 0 }}>{a.explanation}</p>
+          </div>
+        ))}
       </section>
     </main>
   );

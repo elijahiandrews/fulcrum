@@ -1,9 +1,8 @@
 import { cache } from "react";
 
-import { computeFulcrumScore } from "./scoring";
+import { buildFulcrumExplanation, computeFulcrumScore } from "./scoring";
 import { enrichSqueezeSignals } from "./enrichment";
 import { seededSymbols } from "./seed";
-import { getActiveTrackedSymbols } from "./universe";
 import { fetchBorrowFeeSignalWithMeta, type BorrowFeeSignal } from "../providers/borrow";
 import {
   fetchBatchMarketStateWithMeta,
@@ -154,12 +153,25 @@ const normalizeSymbolIntel = async (
           qualityLabel: "low" as const
         };
 
-  const scored = computeFulcrumScore({
-    ...enrichedSignals.features,
-    sourceFreshnessMinutes
-  }, enrichedSignals.provenance);
+  const scored = computeFulcrumScore(
+    {
+      ...enrichedSignals.features,
+      sourceFreshnessMinutes
+    },
+    enrichedSignals.provenance
+  );
 
   const confidence = clamp(scored.confidence - completenessPenalty - enrichedSignals.confidencePenalty);
+
+  const explanation = buildFulcrumExplanation({
+    symbol: seed.symbol,
+    features: enrichedSignals.features,
+    breakdown: scored.explainabilityBreakdown,
+    squeezeScore: scored.squeezeScore,
+    confidence,
+    catalystSummary: catalyst.catalystSummary,
+    sourceFreshnessMinutes
+  });
   const symbolRegion = hasLiveQuote ? inferRegionFromSymbol(fmpSymbol) : seed.region;
   const liveFieldCoverage: string[] = [];
 
@@ -191,9 +203,7 @@ const normalizeSymbolIntel = async (
     squeezeScore: scored.squeezeScore,
     confidence,
     explainabilityBreakdown: scored.explainabilityBreakdown,
-    explanation: `${seed.symbol} scores ${scored.squeezeScore.toFixed(1)} with ${confidence.toFixed(
-      0
-    )}% confidence. Live coverage: ${liveFieldCoverage.length > 0 ? liveFieldCoverage.join(", ") : "none"}; fallback data remains for positioning and options factors.`,
+    explanation,
     sourceFreshnessMinutes,
     updatedAt: freshestObservedAt ? freshestObservedAt.toISOString() : seed.updatedAt,
     dataOrigin,
@@ -231,8 +241,7 @@ const fetchSnapshotUncached = async (): Promise<SnapshotPayload> => {
       console.info("[fulcrum/live] Finnhub key missing; catalyst enrichment falling back to seeded values.");
     }
 
-    const trackedUniverseSymbols = getActiveTrackedSymbols().map((entry) => mapSymbolForExchange(entry));
-    const fmpSymbols = trackedUniverseSymbols.length > 0 ? trackedUniverseSymbols : seededSymbols.map((seed) => mapSymbolForExchange(seed));
+    const fmpSymbols = seededSymbols.map((seed) => mapSymbolForExchange(seed));
     const marketResult = missingFmp
       ? { data: new Map<string, FmpMarketState>(), meta: { ok: false, degraded: true, reason: "missing_key" } as ProviderFetchMeta }
       : await fetchBatchMarketStateWithMeta(fmpSymbols);

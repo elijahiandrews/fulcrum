@@ -67,6 +67,9 @@ export default async function OpsPage() {
         <p style={{ margin: "0.25rem 0" }}><strong>Total tracked:</strong> {coverage.totalTrackedSymbols}</p>
         <p style={{ margin: "0.25rem 0" }}><strong>Active tracked:</strong> {coverage.activeTrackedSymbols}</p>
         <p style={{ margin: "0.25rem 0" }}>
+          <strong>Product dataset:</strong> {"fulcrumProductDatasetSymbols" in coverage ? coverage.fulcrumProductDatasetSymbols : "—"} symbols (seed → score pipeline)
+        </p>
+        <p style={{ margin: "0.25rem 0" }}>
           <strong>Region breakdown:</strong> US {coverage.regionBreakdown.US} / Europe {coverage.regionBreakdown.Europe} / Asia {coverage.regionBreakdown.Asia}
         </p>
         <p style={{ margin: "0.25rem 0" }}>

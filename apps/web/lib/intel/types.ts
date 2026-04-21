@@ -29,7 +29,8 @@ export interface SymbolIntel {
   squeezeScore: number;
   confidence: number;
   explainabilityBreakdown: ExplainabilityBreakdown;
-  explanation: string;
+  /** Structured narrative lines derived from the same inputs as the score (not marketing copy). */
+  explanation: string[];
   sourceFreshnessMinutes: number;
   updatedAt: string;
   dataOrigin: "live" | "hybrid-fallback" | "seed";

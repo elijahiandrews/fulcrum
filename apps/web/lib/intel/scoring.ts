@@ -1,4 +1,5 @@
 import { ExplainabilityBreakdown, FieldProvenanceMap, SymbolFeatureInput } from "./types";
+import { riskBandFromScore } from "./riskBand";
 
 const clamp = (value: number, min = 0, max = 100): number => Math.max(min, Math.min(max, value));
 
@@ -72,4 +73,47 @@ export function computeFulcrumScore(input: SymbolFeatureInput, provenance?: Fiel
   );
 
   return { squeezeScore, confidence, explainabilityBreakdown };
+}
+
+/** Narrative lines tied to raw features and the computed breakdown (GSI explainability contract). */
+export function buildFulcrumExplanation(params: {
+  symbol: string;
+  features: SymbolFeatureInput;
+  breakdown: ExplainabilityBreakdown;
+  squeezeScore: number;
+  confidence: number;
+  catalystSummary: string;
+  sourceFreshnessMinutes: number;
+}): string[] {
+  const { symbol, features, breakdown, squeezeScore, confidence, catalystSummary, sourceFreshnessMinutes } = params;
+  const band = riskBandFromScore(squeezeScore);
+  const ranked = (
+    [
+      ["Short positioning", breakdown.shortPressure],
+      ["Options surface", breakdown.optionsPressure],
+      ["Volume regime", breakdown.volumePressure],
+      ["Catalyst stack", breakdown.catalystPressure],
+      ["Liquidity / float", breakdown.liquidityPressure]
+    ] as [string, number][]
+  ).slice()
+    .sort((a, b) => b[1] - a[1]);
+
+  const freshness =
+    sourceFreshnessMinutes <= 5
+      ? "Tape and positioning inputs refreshed within 5 minutes."
+      : `Oldest primary input in the stack is ~${sourceFreshnessMinutes} minutes stale.`;
+
+  return [
+    `${symbol} — ${band} band at squeeze score ${squeezeScore.toFixed(1)} (${confidence.toFixed(0)}% confidence). Top drivers: ${ranked[0][0].toLowerCase()} (${ranked[0][1].toFixed(
+      1
+    )}), then ${ranked[1][0].toLowerCase()} (${ranked[1][1].toFixed(1)}).`,
+    `Positioning: disclosed short interest ~${features.shortInterestPctFloat.toFixed(1)}% of float with borrow fee ~${features.borrowFeePct.toFixed(
+      1
+    )}%; float context ~${features.floatSharesM.toFixed(0)}M shares.`,
+    `Derivatives & tape: options volume ~${features.optionsVolumeRatio.toFixed(2)}x vs 30-day ADV, call/put skew ${features.callPutSkew.toFixed(
+      2
+    )}; session volume running ~${features.relativeVolume.toFixed(2)}x vs baseline.`,
+    `Catalyst lens: ${catalystSummary}`,
+    freshness
+  ];
 }

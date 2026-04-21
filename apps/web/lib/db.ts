@@ -1,5 +1,11 @@
+/**
+ * Fulcrum data access layer — UI and API routes consume this module only.
+ * Implementation is backed by `lib/intel` (mock seed → scoring → optional live enrichment).
+ */
+
 import { getGeneratedAlerts, getSymbolIntelDataset } from "./intel/data";
 import { getLiveIntelSnapshot } from "./intel/live";
+import { FULCRUM_DATASET_SYMBOL_COUNT } from "./intel/seed";
 import {
   getAlertMemory,
   getAlertMemoryForSymbol,
@@ -8,11 +14,13 @@ import {
   getRecentSnapshots
 } from "./intel/history";
 import { getTrackedUniverseSummary } from "./intel/universe";
-import { AlertMemoryRecord, SnapshotChangeEvent, SymbolIntel, SymbolSnapshot } from "./intel/types";
+import { AlertMemoryRecord, FulcrumAlert, SnapshotChangeEvent, SymbolIntel, SymbolSnapshot } from "./intel/types";
 import { LiveStatusScenario } from "./api/live-status";
 
+export type { SymbolIntel, FulcrumAlert, SymbolSnapshot, AlertMemoryRecord };
+
 export type ScoreRow = SymbolIntel;
-export type AlertRow = Awaited<ReturnType<typeof getAlerts>>[number];
+
 export interface SymbolHistoryBundle {
   snapshots: SymbolSnapshot[];
   comparison: ReturnType<typeof getCurrentVsPreviousSnapshot>;
@@ -31,15 +39,16 @@ export interface RegionMonitorRow {
 }
 
 const regionPressureNotes: Record<RegionMonitorRow["region"], string> = {
-  US: "US flow shows repeated options-led convexity spikes in tighter-float names.",
-  Europe: "European names are showing selective post-news pressure with thinner midday liquidity.",
-  Asia: "Asia session pressure is concentrated around gamma-sensitive strikes and macro catalysts."
+  US: "US tape shows repeated options-led convexity spikes in tighter-float names on the Fulcrum book.",
+  Europe: "European coverage is selective: post-headline liquidity pockets drive most of the squeeze-style pressure.",
+  Asia: "Asia session risk clusters around gamma-sensitive strikes and event-linked hedging flows."
 };
 
 const catalystSummaryForRegion = (rows: SymbolIntel[]): string => {
   const active = rows.filter((r) => r.catalystStatus === "active").length;
   const watch = rows.filter((r) => r.catalystStatus === "watch").length;
-  return `${active} active catalyst signals, ${watch} watchlist catalyst signals.`;
+  const none = rows.filter((r) => r.catalystStatus === "none").length;
+  return `${active} active catalyst context, ${watch} watchlist, ${none} neutral / no-catalyst posture.`;
 };
 
 const toRegionRow = (region: RegionMonitorRow["region"], rows: SymbolIntel[]): RegionMonitorRow => ({
@@ -71,14 +80,15 @@ export async function getTopRankedSymbols(limit = 5): Promise<ScoreRow[]> {
 
 export async function getScoreById(id: string): Promise<ScoreRow | undefined> {
   const rows = await getSymbolIntelDataset();
-  return rows.find((row) => row.symbol.toLowerCase() === id.toLowerCase());
+  const normalized = id.trim().toLowerCase();
+  return rows.find((row) => row.symbol.toLowerCase() === normalized);
 }
 
-export async function getAlerts(): Promise<Awaited<ReturnType<typeof getGeneratedAlerts>>> {
-  return await getGeneratedAlerts();
+export async function getAlerts(): Promise<FulcrumAlert[]> {
+  return getGeneratedAlerts();
 }
 
-export async function getAlertsForSymbol(symbol: string): Promise<Awaited<ReturnType<typeof getGeneratedAlerts>>> {
+export async function getAlertsForSymbol(symbol: string): Promise<FulcrumAlert[]> {
   const normalized = symbol.toLowerCase();
   const alerts = await getGeneratedAlerts();
   return alerts.filter((alert) => alert.symbol.toLowerCase() === normalized);
@@ -137,52 +147,53 @@ export async function getRegionalMonitorRows(): Promise<RegionMonitorRow[]> {
 }
 
 export async function getCoverageSummary() {
-  return getTrackedUniverseSummary();
+  const summary = getTrackedUniverseSummary();
+  return {
+    ...summary,
+    fulcrumProductDatasetSymbols: FULCRUM_DATASET_SYMBOL_COUNT
+  };
 }
 
-
-export async function getLiveStatusForScenario(
-  scenario?: LiveStatusScenario
-) {
+export async function getLiveStatusForScenario(scenario?: LiveStatusScenario) {
   const status = await getLiveStatus();
   if (!scenario) return status;
   if (scenario === "healthy") {
-    return { ...status, overallMode: "live", fmpStatus: "ok", finnhubStatus: "ok", note: "Simulated healthy provider state." } as const;
+    return { ...status, overallMode: "live" as const, fmpStatus: "ok" as const, finnhubStatus: "ok" as const, note: "Simulated healthy provider state." };
   }
   if (scenario === "missing_fmp") {
     return {
       ...status,
-      overallMode: "partial",
-      fmpStatus: "missing_key",
-      finnhubStatus: "ok",
+      overallMode: "partial" as const,
+      fmpStatus: "missing_key" as const,
+      finnhubStatus: "ok" as const,
       note: "Simulated: FMP key missing, catalyst feed remains live."
-    } as const;
+    };
   }
   if (scenario === "finnhub_error") {
     return {
       ...status,
-      overallMode: "partial",
-      fmpStatus: "ok",
-      finnhubStatus: "error",
+      overallMode: "partial" as const,
+      fmpStatus: "ok" as const,
+      finnhubStatus: "error" as const,
       note: "Simulated: Finnhub request failures, market-state remains live."
-    } as const;
+    };
   }
   if (scenario === "fmp_error") {
     return {
       ...status,
-      overallMode: "partial",
-      fmpStatus: "error",
-      finnhubStatus: "ok",
+      overallMode: "partial" as const,
+      fmpStatus: "error" as const,
+      finnhubStatus: "ok" as const,
       note: "Simulated: FMP request failures, catalyst enrichment remains live."
-    } as const;
+    };
   }
   return {
     ...status,
-    overallMode: "fallback",
-    fmpStatus: "error",
-    finnhubStatus: "error",
+    overallMode: "fallback" as const,
+    fmpStatus: "error" as const,
+    finnhubStatus: "error" as const,
     note: "Simulated: both providers unavailable, seeded fallback active."
-  } as const;
+  };
 }
 
 export async function getLiveStatus() {

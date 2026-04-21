@@ -1,12 +1,19 @@
 import { SeedSymbolInput } from "./types";
-import { getActiveTrackedSymbols } from "./universe";
 
-const seedBySymbol: Record<string, Omit<SeedSymbolInput, "symbol" | "companyName" | "region" | "exchange">> = {
-  GME: {
+/**
+ * Canonical Fulcrum / GSI mock dataset (raw inputs → scoring layer → SymbolIntel).
+ * Replace this array (or swap the provider behind `getLiveIntelSnapshot`) for live feeds.
+ */
+export const FULCRUM_SEED_DATASET: SeedSymbolInput[] = [
+  {
+    symbol: "GME",
+    companyName: "GameStop Corp.",
+    region: "US",
+    exchange: "NYSE",
     price: 43.2,
     move1D: 12.1,
-    volume: 88400000,
-    catalystSummary: "8-K partnership update and sustained social-flow momentum.",
+    volume: 88_400_000,
+    catalystSummary: "8-K partnership update plus elevated retail-directed flow into weekly calls.",
     updatedAt: "2026-04-21T13:41:00Z",
     previousScore: 88.2,
     previousConfidence: 82,
@@ -22,11 +29,15 @@ const seedBySymbol: Record<string, Omit<SeedSymbolInput, "symbol" | "companyName
       sourceFreshnessMinutes: 3
     }
   },
-  BYND: {
+  {
+    symbol: "BYND",
+    companyName: "Beyond Meat, Inc.",
+    region: "US",
+    exchange: "NASDAQ",
     price: 8.36,
     move1D: 7.4,
-    volume: 12600000,
-    catalystSummary: "Sector chatter and borrow tightening keep tape unstable.",
+    volume: 12_600_000,
+    catalystSummary: "Borrow desk tightness and sector headline risk keeping two-way flow unstable.",
     updatedAt: "2026-04-21T13:37:00Z",
     previousScore: 73.4,
     previousConfidence: 74,
@@ -42,11 +53,15 @@ const seedBySymbol: Record<string, Omit<SeedSymbolInput, "symbol" | "companyName
       sourceFreshnessMinutes: 7
     }
   },
-  PLUG: {
+  {
+    symbol: "PLUG",
+    companyName: "Plug Power Inc.",
+    region: "US",
+    exchange: "NASDAQ",
     price: 4.22,
     move1D: 5.8,
-    volume: 51200000,
-    catalystSummary: "Hydrogen policy headline risk meets persistent short demand.",
+    volume: 51_200_000,
+    catalystSummary: "Policy headline window overlapping persistent short demand on the name.",
     updatedAt: "2026-04-21T13:29:00Z",
     previousScore: 70.6,
     previousConfidence: 66,
@@ -62,11 +77,39 @@ const seedBySymbol: Record<string, Omit<SeedSymbolInput, "symbol" | "companyName
       sourceFreshnessMinutes: 11
     }
   },
-  MBLY: {
+  {
+    symbol: "HIMS",
+    companyName: "Hims & Hers Health, Inc.",
+    region: "US",
+    exchange: "NYSE",
+    price: 17.76,
+    move1D: 9.8,
+    volume: 24_600_000,
+    catalystSummary: "Paid acquisition push plus social velocity created a clean catalyst spike into calls.",
+    updatedAt: "2026-04-21T13:39:00Z",
+    previousScore: 76.8,
+    previousConfidence: 72,
+    features: {
+      shortInterestPctFloat: 28.9,
+      borrowFeePct: 14.4,
+      relativeVolume: 5.2,
+      optionsVolumeRatio: 3.1,
+      callPutSkew: 1.37,
+      floatSharesM: 202,
+      catalystStatus: "active",
+      liquidityTightness: "tight",
+      sourceFreshnessMinutes: 4
+    }
+  },
+  {
+    symbol: "MBLY",
+    companyName: "Mobileye Global Inc.",
+    region: "US",
+    exchange: "NASDAQ",
     price: 24.89,
     move1D: 2.6,
-    volume: 6400000,
-    catalystSummary: "Options demand increased without a fresh confirmed catalyst.",
+    volume: 6_400_000,
+    catalystSummary: "Options demand rose without a fresh, confirmed fundamental catalyst on tape.",
     updatedAt: "2026-04-21T13:21:00Z",
     previousScore: 66.1,
     previousConfidence: 71,
@@ -82,11 +125,15 @@ const seedBySymbol: Record<string, Omit<SeedSymbolInput, "symbol" | "companyName
       sourceFreshnessMinutes: 21
     }
   },
-  OCDO: {
+  {
+    symbol: "OCDO",
+    companyName: "Ocado Group plc",
+    region: "Europe",
+    exchange: "LSE",
     price: 3.14,
     move1D: 6.1,
-    volume: 9600000,
-    catalystSummary: "Guidance-related repricing with thinning offer-side depth.",
+    volume: 9_600_000,
+    catalystSummary: "Guidance-related repricing with measurable offer-side depth erosion post headline.",
     updatedAt: "2026-04-21T13:34:00Z",
     previousScore: 69.3,
     previousConfidence: 68,
@@ -102,11 +149,15 @@ const seedBySymbol: Record<string, Omit<SeedSymbolInput, "symbol" | "companyName
       sourceFreshnessMinutes: 14
     }
   },
-  AAL: {
+  {
+    symbol: "AAL",
+    companyName: "Anglo American plc",
+    region: "Europe",
+    exchange: "LSE",
     price: 23.48,
     move1D: 3.3,
-    volume: 7300000,
-    catalystSummary: "M&A narrative keeps catalyst watch live across London flow.",
+    volume: 7_300_000,
+    catalystSummary: "M&A / commodity narrative keeping a live catalyst watch on London flow.",
     updatedAt: "2026-04-21T13:15:00Z",
     previousScore: 58.1,
     previousConfidence: 62,
@@ -122,11 +173,15 @@ const seedBySymbol: Record<string, Omit<SeedSymbolInput, "symbol" | "companyName
       sourceFreshnessMinutes: 28
     }
   },
-  SIE: {
+  {
+    symbol: "SIE",
+    companyName: "Siemens AG",
+    region: "Europe",
+    exchange: "XETRA",
     price: 192.1,
     move1D: 1.7,
-    volume: 2800000,
-    catalystSummary: "Liquidity remains deep; event risk is currently low.",
+    volume: 2_800_000,
+    catalystSummary: "Deep book liquidity; used internally as a European false-positive control.",
     updatedAt: "2026-04-21T13:11:00Z",
     previousScore: 41.2,
     previousConfidence: 64,
@@ -142,11 +197,15 @@ const seedBySymbol: Record<string, Omit<SeedSymbolInput, "symbol" | "companyName
       sourceFreshnessMinutes: 38
     }
   },
-  "9984": {
+  {
+    symbol: "9984",
+    companyName: "SoftBank Group Corp.",
+    region: "Asia",
+    exchange: "TSE",
     price: 73.5,
     move1D: 4.5,
-    volume: 15400000,
-    catalystSummary: "Structured-product hedging amplifies gamma-sensitive moves.",
+    volume: 15_400_000,
+    catalystSummary: "Structured-product hedging lifting gamma sensitivity around crowded strikes.",
     updatedAt: "2026-04-21T13:28:00Z",
     previousScore: 67.5,
     previousConfidence: 63,
@@ -162,11 +221,15 @@ const seedBySymbol: Record<string, Omit<SeedSymbolInput, "symbol" | "companyName
       sourceFreshnessMinutes: 16
     }
   },
-  "6758": {
+  {
+    symbol: "6758",
+    companyName: "Sony Group Corporation",
+    region: "Asia",
+    exchange: "TSE",
     price: 98.14,
     move1D: 2.1,
-    volume: 8900000,
-    catalystSummary: "Event-window options interest rising into earnings cycle.",
+    volume: 8_900_000,
+    catalystSummary: "Event-window options interest rising ahead of the next earnings cycle.",
     updatedAt: "2026-04-21T13:12:00Z",
     previousScore: 55.2,
     previousConfidence: 68,
@@ -182,104 +245,33 @@ const seedBySymbol: Record<string, Omit<SeedSymbolInput, "symbol" | "companyName
       sourceFreshnessMinutes: 24
     }
   },
-  HIMS: {
-    price: 17.76,
-    move1D: 9.8,
-    volume: 24600000,
-    catalystSummary: "Advertising push and social virality triggered squeeze repricing.",
-    updatedAt: "2026-04-21T13:39:00Z",
-    previousScore: 76.8,
-    previousConfidence: 72,
+  {
+    symbol: "RIVN",
+    companyName: "Rivian Automotive, Inc.",
+    region: "US",
+    exchange: "NASDAQ",
+    price: 14.85,
+    move1D: 4.2,
+    volume: 22_100_000,
+    catalystSummary: "Delivery cadence headlines intersecting with elevated weekly call open interest.",
+    updatedAt: "2026-04-21T13:15:00Z",
+    previousScore: 61.0,
+    previousConfidence: 62,
     features: {
-      shortInterestPctFloat: 28.9,
-      borrowFeePct: 14.4,
-      relativeVolume: 5.2,
-      optionsVolumeRatio: 3.1,
-      callPutSkew: 1.37,
-      floatSharesM: 202,
-      catalystStatus: "active",
-      liquidityTightness: "tight",
-      sourceFreshnessMinutes: 4
+      shortInterestPctFloat: 18.2,
+      borrowFeePct: 7.4,
+      relativeVolume: 2.8,
+      optionsVolumeRatio: 2.4,
+      callPutSkew: 1.19,
+      floatSharesM: 956,
+      catalystStatus: "watch",
+      liquidityTightness: "moderate",
+      sourceFreshnessMinutes: 9
     }
   }
-};
+];
 
-const regionBasePrice: Record<SeedSymbolInput["region"], number> = {
-  US: 24,
-  Europe: 31,
-  Asia: 52
-};
+export const FULCRUM_DATASET_SYMBOL_COUNT = FULCRUM_SEED_DATASET.length;
 
-const tierProfile = {
-  core: { score: 79, confidence: 76, relVol: 3.8, short: 21, borrow: 9.5, options: 2.8, skew: 1.27, floatM: 420 },
-  watch: { score: 66, confidence: 69, relVol: 2.9, short: 14, borrow: 6.1, options: 2.1, skew: 1.14, floatM: 690 },
-  experimental: { score: 53, confidence: 63, relVol: 2.1, short: 8.2, borrow: 3.2, options: 1.7, skew: 1.05, floatM: 980 }
-} as const;
-
-const hashSymbol = (symbol: string): number =>
-  symbol
-    .split("")
-    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
-const buildGeneratedSeed = (input: {
-  symbol: string;
-  region: SeedSymbolInput["region"];
-  priorityTier: "core" | "watch" | "experimental";
-  monitoringRationale: string;
-}): Omit<SeedSymbolInput, "symbol" | "companyName" | "region" | "exchange"> => {
-  const hash = hashSymbol(input.symbol);
-  const profile = tierProfile[input.priorityTier];
-  const freshness = 4 + (hash % 24);
-  const scoreDrift = (hash % 8) - 3;
-  const confidenceDrift = (hash % 7) - 3;
-  const relVolDrift = ((hash % 6) - 2) * 0.2;
-
-  const price = Number((regionBasePrice[input.region] + (hash % 35) + (hash % 100) / 100).toFixed(2));
-  const move1D = Number((((hash % 12) - 4) * 0.9).toFixed(1));
-  const volume = Math.max(900_000, 1_200_000 + (hash % 80) * 850_000);
-  const previousScore = Number((profile.score + scoreDrift).toFixed(1));
-  const previousConfidence = Math.max(48, Math.min(92, Math.round(profile.confidence + confidenceDrift)));
-  const relativeVolume = Number(Math.max(1.3, profile.relVol + relVolDrift).toFixed(1));
-  const catalystStatus = input.priorityTier === "core" ? "watch" : input.priorityTier === "watch" ? "watch" : "none";
-  const liquidityTightness = input.priorityTier === "core" ? "tight" : input.priorityTier === "watch" ? "moderate" : "loose";
-
-  return {
-    price,
-    move1D,
-    volume,
-    catalystSummary: input.monitoringRationale,
-    updatedAt: new Date(Date.now() - freshness * 60_000).toISOString(),
-    previousScore,
-    previousConfidence,
-    features: {
-      shortInterestPctFloat: Number((profile.short + (hash % 5)).toFixed(1)),
-      borrowFeePct: Number((profile.borrow + (hash % 4) * 0.6).toFixed(1)),
-      relativeVolume,
-      optionsVolumeRatio: Number((profile.options + (hash % 4) * 0.2).toFixed(1)),
-      callPutSkew: Number((profile.skew + (hash % 3) * 0.06).toFixed(2)),
-      floatSharesM: Number((profile.floatM + (hash % 220)).toFixed(0)),
-      catalystStatus,
-      liquidityTightness,
-      sourceFreshnessMinutes: freshness
-    }
-  };
-};
-
-export const seededSymbols: SeedSymbolInput[] = getActiveTrackedSymbols()
-  .map((tracked) => {
-    const defaults =
-      seedBySymbol[tracked.symbol] ??
-      buildGeneratedSeed({
-        symbol: tracked.symbol,
-        region: tracked.region,
-        priorityTier: tracked.priorityTier,
-        monitoringRationale: tracked.monitoringRationale
-      });
-    return {
-      symbol: tracked.symbol,
-      companyName: tracked.companyName,
-      region: tracked.region,
-      exchange: tracked.exchange,
-      ...defaults
-    };
-  });
+/** Only these names flow through the mock-to-real pipeline in V1 product surfaces. */
+export const seededSymbols: SeedSymbolInput[] = FULCRUM_SEED_DATASET;

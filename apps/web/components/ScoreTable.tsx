@@ -1,59 +1,83 @@
 import Link from "next/link";
 import { ScoreRow } from "../lib/db";
+import { riskBandFromScore } from "../lib/intel/riskBand";
 
-const freshnessLabel = (minutes: number) => `${minutes}m old`;
-const bandFromScore = (score: number): "low" | "elevated" | "high" | "critical" =>
-  score >= 85 ? "critical" : score >= 70 ? "high" : score >= 50 ? "elevated" : "low";
+const freshnessLabel = (minutes: number, updatedAt: string) =>
+  `${minutes}m stack lag · ${new Date(updatedAt).toLocaleTimeString()}`;
+
+const rowBandClass = (band: ReturnType<typeof riskBandFromScore>): string => {
+  switch (band) {
+    case "critical":
+      return "row-band-critical";
+    case "high":
+      return "row-band-high";
+    case "elevated":
+      return "row-band-elevated";
+    default:
+      return "row-band-low";
+  }
+};
 
 export function ScoreTable({ rows }: { rows: ScoreRow[] }) {
   return (
-    <div className="card">
-      <table className="intel-table">
-        <thead>
-          <tr>
-            <th>Symbol</th>
-            <th>Squeeze</th>
-            <th>Confidence</th>
-            <th>Signal Drivers</th>
-            <th>Catalyst</th>
-            <th>Freshness</th>
-            <th>Brief</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const band = bandFromScore(row.squeezeScore);
-            return (
-              <tr key={row.symbol}>
-                <td>
-                  <Link href={`/symbol/${row.symbol.toLowerCase()}`} style={{ fontWeight: 600 }}>{row.symbol}</Link>
-                  <div style={{ color: "#89a0bf", fontSize: "0.78rem" }}>{row.companyName}</div>
-                </td>
-                <td className={`score-${band}`}>{row.squeezeScore.toFixed(1)} ({band})</td>
-                <td>{row.confidence.toFixed(0)}%</td>
-                <td>
-                  <div style={{ color: "#d9e2f2" }}>Short {row.explainabilityBreakdown.shortPressure.toFixed(1)}</div>
-                  <div style={{ color: "#d9e2f2" }}>Options {row.explainabilityBreakdown.optionsPressure.toFixed(1)}</div>
-                </td>
-                <td>
-                  <div style={{ textTransform: "capitalize" }}>{row.catalystStatus}</div>
-                  <div style={{ color: "#89a0bf", fontSize: "0.78rem" }}>RelVol {row.relativeVolume.toFixed(1)}x</div>
-                </td>
-                <td>
-                  {freshnessLabel(row.sourceFreshnessMinutes)}
-                  <div style={{ color: "#89a0bf", fontSize: "0.78rem" }}>{row.region} / {row.exchange}</div>
-                </td>
-                <td style={{ maxWidth: 360, color: "#b5c6de" }}>
-                  {row.explanation}
-                  <div style={{ marginTop: "0.3rem", color: "#89a0bf", fontSize: "0.78rem", textTransform: "capitalize" }}>
-                    {row.dataOrigin.replace("-", " ")}
-                  </div>
-                </td>
+    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="table-scroll">
+        <div className="intel-table-wrap">
+          <table className="intel-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Squeeze</th>
+                <th>Conf</th>
+                <th>Short</th>
+                <th>Options</th>
+                <th>Vol Δ</th>
+                <th>Catalyst</th>
+                <th>Float / Liq</th>
+                <th>Freshness</th>
+                <th>Driver note</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const band = riskBandFromScore(row.squeezeScore);
+                const brief = row.explanation[0] ?? "";
+                return (
+                  <tr key={row.symbol} className={rowBandClass(band)}>
+                    <td>
+                      <Link href={`/symbol/${row.symbol.toLowerCase()}`} style={{ fontWeight: 600 }}>
+                        {row.symbol}
+                      </Link>
+                      <div style={{ color: "var(--muted)", fontSize: "0.78rem" }}>{row.companyName}</div>
+                    </td>
+                    <td className={`score-${band}`}>
+                      {row.squeezeScore.toFixed(1)} <span style={{ color: "var(--muted)", fontWeight: 500 }}>({band})</span>
+                    </td>
+                    <td>{row.confidence.toFixed(0)}%</td>
+                    <td>{row.explainabilityBreakdown.shortPressure.toFixed(1)}</td>
+                    <td>{row.explainabilityBreakdown.optionsPressure.toFixed(1)}</td>
+                    <td>{row.relativeVolume.toFixed(1)}×</td>
+                    <td style={{ textTransform: "capitalize" }}>{row.catalystStatus}</td>
+                    <td>
+                      {row.floatSharesM.toFixed(0)}M float
+                      <div style={{ color: "var(--muted)", fontSize: "0.78rem", textTransform: "capitalize" }}>
+                        {row.liquidityTightness} book
+                      </div>
+                    </td>
+                    <td>
+                      {freshnessLabel(row.sourceFreshnessMinutes, row.updatedAt)}
+                      <div style={{ color: "var(--muted)", fontSize: "0.78rem" }}>
+                        {row.region} / {row.exchange}
+                      </div>
+                    </td>
+                    <td style={{ maxWidth: 340, color: "var(--muted2)", fontSize: "0.88rem" }}>{brief}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

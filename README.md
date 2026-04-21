@@ -2,7 +2,7 @@
 
 See the pressure before the move.
 
-Fulcrum is a web-based squeeze-intelligence platform focused on identifying emerging squeeze-risk conditions with explainable scoring and source provenance.
+Fulcrum is a squeeze-risk intelligence engine for discretionary trading desks, multi-manager teams, and risk operators. It identifies emerging squeeze-risk conditions with explainable scoring and source provenance—so teams can act before consensus reprices, not just browse another data feed.
 
 ## Stack
 
