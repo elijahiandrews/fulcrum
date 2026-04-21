@@ -7,13 +7,13 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @squeeze/web",
-    "build": "npm run build --workspace @squeeze/web",
-    "start": "npm run start --workspace @squeeze/web",
+    "dev": "pnpm --filter @squeeze/web dev",
+    "build": "pnpm --filter @squeeze/web build",
+    "start": "pnpm --filter @squeeze/web start",
     "db:up": "docker compose up -d postgres redis",
     "db:down": "docker compose down",
-    "db:migrate": "npm run migrate --workspace @squeeze/db",
-    "db:seed": "npm run seed --workspace @squeeze/db",
-    "worker:run": "npm run run --workspace @squeeze/worker"
+    "db:migrate": "pnpm --filter @squeeze/db migrate",
+    "db:seed": "pnpm --filter @squeeze/db seed",
+    "worker:run": "pnpm --filter @squeeze/worker run"
   }
 }

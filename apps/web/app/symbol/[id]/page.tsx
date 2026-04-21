@@ -1,32 +1,56 @@
-import { getLatestScores } from "../../../lib/db";
+import { getAlertsForSymbol, getScoreById } from "../../../lib/db";
+
+const bandFromScore = (score: number): "low" | "elevated" | "high" | "critical" =>
+  score >= 85 ? "critical" : score >= 70 ? "high" : score >= 50 ? "elevated" : "low";
 
 export default async function SymbolPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const rows = await getLatestScores();
-  const row = rows.find((r) => r.security_id === id);
+  const row = await getScoreById(id);
   if (!row) return <main className="container" style={{ padding: "2rem 0" }}>No data for symbol.</main>;
+  const relatedAlerts = await getAlertsForSymbol(row.symbol);
+  const band = bandFromScore(row.squeezeScore);
 
   return (
     <main className="container" style={{ padding: "2rem 0 3rem 0" }}>
       <h2>{row.symbol} Intelligence Brief</h2>
+      <p style={{ color: "#89a0bf", marginTop: 0 }}>{row.companyName} - {row.region} / {row.exchange}</p>
       <div className="card" style={{ marginBottom: "1rem" }}>
-        <p style={{ margin: 0 }}><strong>Signal Score:</strong> <span className={`score-${row.risk_band}`}>{row.total_score.toFixed(1)} ({row.risk_band})</span></p>
+        <p style={{ margin: 0 }}><strong>Signal Score:</strong> <span className={`score-${band}`}>{row.squeezeScore.toFixed(1)} ({band})</span></p>
         <p><strong>Confidence:</strong> {row.confidence.toFixed(0)}%</p>
-        <p><strong>Computed:</strong> {new Date(row.computed_at).toLocaleString()}</p>
+        <p><strong>Price / 1D Move:</strong> ${row.price.toFixed(2)} / {row.move1D.toFixed(1)}%</p>
+        <p><strong>Volume / RelVol:</strong> {row.volume.toLocaleString()} / {row.relativeVolume.toFixed(1)}x</p>
+        <p><strong>Short Interest / Borrow Fee:</strong> {row.shortInterestPctFloat.toFixed(1)}% / {row.borrowFeePct.toFixed(1)}%</p>
+        <p><strong>Options Ratio / Call-Put Skew:</strong> {row.optionsVolumeRatio.toFixed(1)} / {row.callPutSkew.toFixed(2)}</p>
+        <p style={{ textTransform: "capitalize" }}><strong>Catalyst Status:</strong> {row.catalystStatus}</p>
+        <p><strong>Catalyst Summary:</strong> {row.catalystSummary}</p>
+        <p style={{ textTransform: "capitalize" }}><strong>Liquidity Tightness:</strong> {row.liquidityTightness}</p>
+        <p><strong>Source Freshness:</strong> {row.sourceFreshnessMinutes} min</p>
+        <p style={{ textTransform: "capitalize" }}><strong>Data Origin:</strong> {row.dataOrigin.replace("-", " ")}</p>
+        <p><strong>Live Field Coverage:</strong> {row.liveFieldCoverage.length > 0 ? row.liveFieldCoverage.join(", ") : "none"}</p>
+        <p><strong>Updated:</strong> {new Date(row.updatedAt).toLocaleString()}</p>
       </div>
       <div className="card" style={{ marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>Explainability Notes</h3>
+        <h3 style={{ marginTop: 0 }}>Explainability Breakdown</h3>
         <ul>
-          {row.explanation.map((x, i) => <li key={i}>{x}</li>)}
+          <li>Short pressure: {row.explainabilityBreakdown.shortPressure.toFixed(1)}</li>
+          <li>Options pressure: {row.explainabilityBreakdown.optionsPressure.toFixed(1)}</li>
+          <li>Volume pressure: {row.explainabilityBreakdown.volumePressure.toFixed(1)}</li>
+          <li>Catalyst pressure: {row.explainabilityBreakdown.catalystPressure.toFixed(1)}</li>
+          <li>Liquidity pressure: {row.explainabilityBreakdown.liquidityPressure.toFixed(1)}</li>
         </ul>
       </div>
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Source Freshness & Provenance</h3>
-        {row.source_freshness.map((s, i) => (
-          <p key={`${s.sourceKey}-${i}`} style={{ margin: "0.45rem 0", color: "#b4c5dd" }}>
-            <strong>{s.sourceKey}</strong> - {Math.round(s.freshnessSeconds / 60)} min lag - {s.provenance}
+      <div className="card" style={{ marginBottom: "1rem" }}>
+        <h3 style={{ marginTop: 0 }}>Recent Related Alerts</h3>
+        {relatedAlerts.slice(0, 4).map((alert) => (
+          <p key={alert.id} style={{ margin: "0.45rem 0", color: "#b4c5dd" }}>
+            <strong>{new Date(alert.timestamp).toLocaleString()}</strong> - {alert.alertType} ({alert.severity}) - {alert.confidence}% confidence
           </p>
         ))}
+        {relatedAlerts.length === 0 ? <p style={{ marginTop: 0, color: "#89a0bf" }}>No active alert history for this symbol.</p> : null}
+      </div>
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Narrative Explanation</h3>
+        <p style={{ marginTop: 0, color: "#b4c5dd" }}>{row.explanation}</p>
       </div>
     </main>
   );
