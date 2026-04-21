@@ -36,6 +36,22 @@ export interface SymbolIntel {
   liveFieldCoverage: string[];
 }
 
+export interface LiveFieldCoverageSummary {
+  liveBacked: string[];
+  fallbackDerived: string[];
+  unavailable: string[];
+}
+
+export interface LiveStatus {
+  overallMode: "live" | "partial" | "fallback";
+  fmpStatus: "ok" | "degraded" | "missing_key" | "error";
+  finnhubStatus: "ok" | "degraded" | "missing_key" | "error";
+  cacheStatus: "fresh" | "stale";
+  generatedAt: string;
+  liveFieldCoverage: LiveFieldCoverageSummary;
+  note?: string;
+}
+
 export interface SymbolFeatureInput {
   shortInterestPctFloat: number;
   borrowFeePct: number;
@@ -63,6 +79,28 @@ export interface SeedSymbolInput {
   features: SymbolFeatureInput;
 }
 
+export type UniversePriorityTier = "core" | "watch" | "experimental";
+
+export interface TrackedSymbolEntry {
+  symbol: string;
+  companyName: string;
+  region: "US" | "Europe" | "Asia";
+  exchange: string;
+  sector?: string;
+  priorityTier: UniversePriorityTier;
+  active: boolean;
+  monitoringRationale: string;
+  tags?: string[];
+  seedDefaults?: SeedSymbolInput;
+}
+
+export interface TrackedUniverseSummary {
+  totalTrackedSymbols: number;
+  activeTrackedSymbols: number;
+  regionBreakdown: Record<TrackedSymbolEntry["region"], number>;
+  priorityBreakdown: Record<UniversePriorityTier, number>;
+}
+
 export interface FulcrumAlert {
   id: string;
   timestamp: string;
@@ -79,4 +117,52 @@ export interface FulcrumAlert {
   confidence: number;
   explanation: string;
   status: "active" | "resolved" | "downgraded";
+}
+
+export interface SymbolSnapshot {
+  symbol: string;
+  capturedAt: string;
+  squeezeScore: number;
+  confidence: number;
+  price: number;
+  move1D: number;
+  volume: number;
+  relativeVolume: number;
+  catalystStatus: CatalystStatus;
+  catalystSummary: string;
+  explainabilityBreakdown: ExplainabilityBreakdown;
+  sourceFreshnessMinutes: number;
+  dataOrigin: SymbolIntel["dataOrigin"];
+}
+
+export type SnapshotChangeType =
+  | "score-increase"
+  | "score-decrease"
+  | "confidence-change"
+  | "catalyst-change"
+  | "relative-volume-spike"
+  | "driver-shift";
+
+export interface SnapshotChangeEvent {
+  symbol: string;
+  type: SnapshotChangeType;
+  message: string;
+  previousValue?: string;
+  currentValue?: string;
+  magnitude?: number;
+  capturedAt: string;
+}
+
+export interface AlertMemoryRecord {
+  id: string;
+  symbol: string;
+  companyName: string;
+  alertType: FulcrumAlert["alertType"];
+  severity: FulcrumAlert["severity"];
+  confidence: number;
+  explanation: string;
+  status: "active" | "resolved" | "downgraded";
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
 }

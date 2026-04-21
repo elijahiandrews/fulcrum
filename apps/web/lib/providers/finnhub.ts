@@ -5,6 +5,12 @@ export interface FinnhubNewsItem {
   summary?: string;
 }
 
+export interface ProviderFetchMeta {
+  ok: boolean;
+  degraded: boolean;
+  reason?: string;
+}
+
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -20,9 +26,14 @@ const withTimeout = async (input: RequestInfo | URL, init: RequestInit = {}) => 
   }
 };
 
-const fetchFromFinnhub = async <T>(path: string, params: Record<string, string>): Promise<T | null> => {
+const fetchFromFinnhub = async <T>(
+  path: string,
+  params: Record<string, string>
+): Promise<{ payload: T | null; meta: ProviderFetchMeta }> => {
   const apiKey = getKey();
-  if (!apiKey) return null;
+  if (!apiKey) {
+    return { payload: null, meta: { ok: false, degraded: true, reason: "missing_key" } };
+  }
 
   const url = new URL(`${FINNHUB_BASE_URL}${path}`);
   Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
@@ -32,23 +43,32 @@ const fetchFromFinnhub = async <T>(path: string, params: Record<string, string>)
     const response = await withTimeout(url);
     if (response.status === 429) {
       console.warn("[fulcrum/live] Finnhub rate limit reached.");
-      return null;
+      return { payload: null, meta: { ok: false, degraded: true, reason: "rate_limited" } };
     }
     if (!response.ok) {
       console.warn(`[fulcrum/live] Finnhub request failed (${response.status}) for ${path}.`);
-      return null;
+      return { payload: null, meta: { ok: false, degraded: false, reason: `http_${response.status}` } };
     }
-    return (await response.json()) as T;
+    return { payload: (await response.json()) as T, meta: { ok: true, degraded: false } };
   } catch (error) {
     console.warn(`[fulcrum/live] Finnhub request error for ${path}.`, error);
-    return null;
+    return { payload: null, meta: { ok: false, degraded: false, reason: "network_error" } };
   }
 };
 
 export const hasFinnhubKey = (): boolean => Boolean(getKey());
 
 export async function fetchRecentNews(symbol: string, fromISO: string, toISO: string): Promise<FinnhubNewsItem[]> {
-  const payload = await fetchFromFinnhub<Array<{ headline?: string; source?: string; datetime?: number; summary?: string }>>(
+  const result = await fetchRecentNewsWithMeta(symbol, fromISO, toISO);
+  return result.data;
+}
+
+export async function fetchRecentNewsWithMeta(
+  symbol: string,
+  fromISO: string,
+  toISO: string
+): Promise<{ data: FinnhubNewsItem[]; meta: ProviderFetchMeta }> {
+  const { payload, meta } = await fetchFromFinnhub<Array<{ headline?: string; source?: string; datetime?: number; summary?: string }>>(
     "/company-news",
     {
       symbol,
@@ -57,9 +77,9 @@ export async function fetchRecentNews(symbol: string, fromISO: string, toISO: st
     }
   );
 
-  if (!Array.isArray(payload)) return [];
+  if (!Array.isArray(payload)) return { data: [], meta };
 
-  return payload
+  const data = payload
     .filter((item) => typeof item.headline === "string" && item.headline.length > 0)
     .slice(0, 4)
     .map((item) => ({
@@ -68,4 +88,9 @@ export async function fetchRecentNews(symbol: string, fromISO: string, toISO: st
       datetime: typeof item.datetime === "number" ? item.datetime : Math.floor(Date.now() / 1000),
       summary: item.summary
     }));
+
+  return {
+    data,
+    meta: data.length > 0 ? { ok: true, degraded: false } : meta.ok ? { ok: false, degraded: true, reason: "empty_payload" } : meta
+  };
 }

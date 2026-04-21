@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { getAlerts } from "../../../../lib/db";
+import { getAlerts, getLiveStatus } from "../../../../lib/db";
 
 export async function GET() {
   const alerts = await getAlerts();
-  return NextResponse.json({ data: alerts, count: alerts.length });
+  const liveStatus = await getLiveStatus();
+  return NextResponse.json({ data: alerts, count: alerts.length, liveStatus });
 }

@@ -1,4 +1,4 @@
-import { getAlerts } from "../../lib/db";
+import { getAlertHistory, getAlerts, getRecentCatalystChangeEvents, getRecentScoreChangeEvents } from "../../lib/db";
 
 const tone: Record<string, string> = {
   critical: "score-critical",
@@ -8,9 +8,14 @@ const tone: Record<string, string> = {
 };
 
 export default async function AlertsCenterPage() {
-  const alerts = await getAlerts();
+  const [alerts, alertHistory, scoreChanges, catalystChanges] = await Promise.all([
+    getAlerts(),
+    getAlertHistory(40),
+    getRecentScoreChangeEvents(undefined, 8),
+    getRecentCatalystChangeEvents(undefined, 8)
+  ]);
   const activeAlerts = alerts.filter((alert) => alert.status === "active");
-  const historicalAlerts = alerts.filter((alert) => alert.status !== "active");
+  const historicalAlerts = alertHistory.filter((alert) => alert.status !== "active");
   const criticalActiveCount = activeAlerts.filter((alert) => alert.severity === "critical").length;
 
   return (
@@ -40,7 +45,7 @@ export default async function AlertsCenterPage() {
           </div>
         ))}
       </section>
-      <section className="card">
+      <section className="card" style={{ marginBottom: "1rem" }}>
         <h3 style={{ marginTop: 0 }}>Recent / Resolved History</h3>
         {historicalAlerts.length === 0 ? <p style={{ marginTop: 0, color: "#89a0bf" }}>No resolved or downgraded alerts yet.</p> : null}
         {historicalAlerts.map((a) => (
@@ -49,11 +54,25 @@ export default async function AlertsCenterPage() {
               <strong>{a.symbol}</strong> - {a.alertType} - <span style={{ textTransform: "capitalize" }}>{a.status}</span>
             </p>
             <p style={{ margin: "0.2rem 0", color: "#89a0bf" }}>
-              {new Date(a.timestamp).toLocaleString()} - {a.confidence}% confidence
+              {new Date(a.updatedAt).toLocaleString()} - {a.confidence}% confidence
             </p>
             <p style={{ marginTop: 0 }}>{a.explanation}</p>
           </div>
         ))}
+      </section>
+      <section className="card">
+        <h3 style={{ marginTop: 0 }}>Recent Meaningful Changes</h3>
+        <p style={{ marginTop: 0, color: "#89a0bf" }}>
+          Latest score and catalyst-state transitions captured by the history layer.
+        </p>
+        {[...scoreChanges, ...catalystChanges]
+          .sort((a, b) => +new Date(b.capturedAt) - +new Date(a.capturedAt))
+          .slice(0, 10)
+          .map((event, idx) => (
+            <p key={`${event.symbol}-${event.type}-${idx}`} style={{ margin: "0.4rem 0", color: "#b5c6de" }}>
+              <strong>{event.symbol}</strong> - {event.message} ({new Date(event.capturedAt).toLocaleString()})
+            </p>
+          ))}
       </section>
     </main>
   );

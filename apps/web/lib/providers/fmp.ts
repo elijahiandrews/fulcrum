@@ -20,6 +20,12 @@ export interface FmpMarketState {
   updatedAt: string;
 }
 
+export interface ProviderFetchMeta {
+  ok: boolean;
+  degraded: boolean;
+  reason?: string;
+}
+
 const FMP_BASE_URL = "https://financialmodelingprep.com/api/v3";
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -37,9 +43,11 @@ const withTimeout = async (input: RequestInfo | URL, init: RequestInit = {}) => 
 
 export const hasFmpKey = (): boolean => Boolean(getKey());
 
-const fetchFromFmp = async <T>(path: string): Promise<T | null> => {
+const fetchFromFmp = async <T>(path: string): Promise<{ payload: T | null; meta: ProviderFetchMeta }> => {
   const apiKey = getKey();
-  if (!apiKey) return null;
+  if (!apiKey) {
+    return { payload: null, meta: { ok: false, degraded: true, reason: "missing_key" } };
+  }
 
   const url = new URL(`${FMP_BASE_URL}${path}`);
   url.searchParams.set("apikey", apiKey);
@@ -48,16 +56,16 @@ const fetchFromFmp = async <T>(path: string): Promise<T | null> => {
     const response = await withTimeout(url);
     if (response.status === 429) {
       console.warn("[fulcrum/live] FMP rate limit reached.");
-      return null;
+      return { payload: null, meta: { ok: false, degraded: true, reason: "rate_limited" } };
     }
     if (!response.ok) {
       console.warn(`[fulcrum/live] FMP request failed (${response.status}) for ${path}.`);
-      return null;
+      return { payload: null, meta: { ok: false, degraded: false, reason: `http_${response.status}` } };
     }
-    return (await response.json()) as T;
+    return { payload: (await response.json()) as T, meta: { ok: true, degraded: false } };
   } catch (error) {
     console.warn(`[fulcrum/live] FMP request error for ${path}.`, error);
-    return null;
+    return { payload: null, meta: { ok: false, degraded: false, reason: "network_error" } };
   }
 };
 
@@ -83,14 +91,29 @@ const toMarketState = (quote: FmpQuote): FmpMarketState | null => {
 };
 
 export async function fetchBatchMarketState(symbols: string[]): Promise<Map<string, FmpMarketState>> {
-  const normalized = symbols.map((x) => x.trim().toUpperCase()).filter(Boolean);
-  if (normalized.length === 0) return new Map();
+  const result = await fetchBatchMarketStateWithMeta(symbols);
+  return result.data;
+}
 
-  const payload = await fetchFromFmp<FmpQuote[]>(`/quote/${encodeURIComponent(normalized.join(","))}`);
-  if (!Array.isArray(payload) || payload.length === 0) return new Map();
+export async function fetchBatchMarketStateWithMeta(
+  symbols: string[]
+): Promise<{ data: Map<string, FmpMarketState>; meta: ProviderFetchMeta }> {
+  const normalized = symbols.map((x) => x.trim().toUpperCase()).filter(Boolean);
+  if (normalized.length === 0) return { data: new Map(), meta: { ok: false, degraded: true, reason: "empty_symbol_set" } };
+
+  const { payload, meta } = await fetchFromFmp<FmpQuote[]>(`/quote/${encodeURIComponent(normalized.join(","))}`);
+  if (!Array.isArray(payload) || payload.length === 0) {
+    return {
+      data: new Map(),
+      meta: meta.ok ? { ok: false, degraded: true, reason: "empty_payload" } : meta
+    };
+  }
 
   const rows = payload.map(toMarketState).filter((x): x is FmpMarketState => Boolean(x));
   const map = new Map<string, FmpMarketState>();
   for (const row of rows) map.set(row.symbol, row);
-  return map;
+  return {
+    data: map,
+    meta: rows.length > 0 ? { ok: true, degraded: false } : { ok: false, degraded: true, reason: "no_valid_rows" }
+  };
 }
