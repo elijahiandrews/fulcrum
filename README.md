@@ -29,6 +29,21 @@ Fulcrum is a web-based squeeze-intelligence platform focused on identifying emer
 7. Open:
    - `http://localhost:3000`
 
+## Local dev: away from the machine, sleep, and port 3000
+
+Treat **`pnpm dev` (or `npm run dev`) as a session** you start when you are at the keyboard and stop when you are done. Local Next.js does not reliably survive **Windows sleep/hibernate**; waking the PC can leave odd network or watcher state.
+
+**Before sleep or stepping away for a long time**
+
+- In the terminal running the app, press **Ctrl+C** to stop the dev server so it does not keep holding **port 3000** or leave orphan `node` processes.
+
+**After wake, or if localhost misbehaves**
+
+1. Start fresh: open a new terminal in the repo root and run `pnpm dev` again.
+2. If the log says **port 3000 is in use**, something else is still listening. Do **not** blindly kill every Node process (Cursor and other tools use Node too).
+3. On Windows, find the PID: `netstat -ano | findstr :3000` — use **Task Manager → Details** to match the **PID** and end only that process if it is a leftover dev server, or close the terminal that started it.
+4. If you only need the product while away from this PC, use the **deployed Vercel URL** instead of relying on a long-running local server.
+
 ## Production hosting (persistent cloud access)
 
 Fulcrum's web app is deployable to persistent Next.js hosting (recommended: Vercel) so it remains reachable from phone or any device even when local machines are off.
