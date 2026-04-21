@@ -6,8 +6,8 @@
     "run": "tsx src/run.ts"
   },
   "dependencies": {
-    "@squeeze/core": "0.1.0",
-    "@squeeze/db": "0.1.0",
+    "@squeeze/core": "workspace:*",
+    "@squeeze/db": "workspace:*",
     "ioredis": "^5.8.2"
   },
   "devDependencies": {
