@@ -20,6 +20,15 @@ const dominantDrivers = (intel: SymbolIntel): string[] => {
 const bandFromScore = (score: number): "critical" | "high" | "elevated" | "low" =>
   score >= 85 ? "critical" : score >= 70 ? "high" : score >= 50 ? "elevated" : "low";
 
+const developmentStage = (intel: SymbolIntel): "emerging" | "building" | "active squeeze risk" | "cooling" => {
+  const shortOptionsPressure =
+    (intel.explainabilityBreakdown.shortPressure + intel.explainabilityBreakdown.optionsPressure) / 2;
+  if (intel.squeezeScore >= 80 && shortOptionsPressure >= 70) return "active squeeze risk";
+  if (intel.squeezeScore >= 62 || (shortOptionsPressure >= 60 && intel.relativeVolume >= 2.2)) return "building";
+  if (intel.squeezeScore >= 45 || intel.relativeVolume >= 1.8 || intel.catalystStatus !== "none") return "emerging";
+  return "cooling";
+};
+
 const explainIntel = (intel: SymbolIntel): string => {
   const [firstDriver, secondDriver] = dominantDrivers(intel);
   const band = bandFromScore(intel.squeezeScore);
@@ -38,9 +47,10 @@ const explainIntel = (intel: SymbolIntel): string => {
           ? "mixed-source"
           : "live-backed";
 
+  const stage = developmentStage(intel);
   return `${intel.symbol} sits in the ${band} squeeze-risk band at ${intel.squeezeScore.toFixed(1)} with ${intel.confidence.toFixed(
     0
-  )}% confidence, led by ${firstDriver} and ${secondDriver}. Signal quality is ${signalQuality}; ${intel.catalystSummary} Current ${freshnessText}.`;
+  )}% confidence and is currently ${stage}, led by ${firstDriver} and ${secondDriver}. Signal quality is ${signalQuality}; ${intel.catalystSummary} Current ${freshnessText}.`;
 };
 
 export const getSymbolIntelDataset = async (): Promise<SymbolIntel[]> => {

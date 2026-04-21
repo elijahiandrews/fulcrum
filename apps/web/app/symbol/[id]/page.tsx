@@ -22,6 +22,53 @@ const optionsPressureState = (optionsRatio: number, skew: number): string => {
   return "balanced options positioning";
 };
 
+const setupStageFromContext = (args: {
+  score: number;
+  scoreDelta: number;
+  confidence: number;
+  confidenceDelta: number;
+  relativeVolume: number;
+  catalystStatus: "none" | "watch" | "active";
+}): "early signal" | "developing setup" | "active squeeze risk" | "cooling / invalidating" => {
+  const { score, scoreDelta, confidence, confidenceDelta, relativeVolume, catalystStatus } = args;
+  if (score >= 80 && scoreDelta >= 0 && confidence >= 70) return "active squeeze risk";
+  if ((score >= 58 && scoreDelta >= 1) || (relativeVolume >= 2.4 && catalystStatus !== "none" && confidenceDelta >= 0))
+    return "developing setup";
+  if (scoreDelta <= -2 || (confidence < 55 && confidenceDelta < 0)) return "cooling / invalidating";
+  return "early signal";
+};
+
+const interpretationWatchlist = (args: {
+  stage: ReturnType<typeof setupStageFromContext>;
+  relativeVolume: number;
+  scoreDelta: number;
+  catalystStatus: "none" | "watch" | "active";
+  optionsRatio: number;
+  shortPressure: number;
+}): string[] => {
+  const watch: string[] = [];
+  if (args.stage === "early signal") {
+    watch.push("Need sustained relative volume above 2.0x to confirm participation.");
+    watch.push("Need options pressure expansion before treating as a true squeeze setup.");
+  }
+  if (args.stage === "developing setup") {
+    watch.push("Monitor score trajectory over next snapshots for continuation above current trend.");
+    watch.push("Confirm catalyst persistence and avoid one-print volume fades.");
+  }
+  if (args.stage === "active squeeze risk") {
+    watch.push("Track whether options and short pressure remain dominant; watch for exhaustion reversal.");
+    watch.push("Use freshness and confidence to validate continued signal integrity.");
+  }
+  if (args.stage === "cooling / invalidating") {
+    watch.push("Setup is losing momentum; require renewed catalyst and participation before re-entry.");
+  }
+  if (args.relativeVolume < 1.8) watch.push("Participation is still light versus squeeze regimes.");
+  if (args.optionsRatio < 2.0) watch.push("Options positioning is not yet in aggressive acceleration.");
+  if (args.catalystStatus === "none") watch.push("No active catalyst detected; setup depends more on flow continuation.");
+  if (args.shortPressure < 55) watch.push("Short-side pressure is moderate; upside convexity may stay conditional.");
+  return [...new Set(watch)].slice(0, 4);
+};
+
 export default async function SymbolPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const row = await getScoreById(id);
@@ -52,6 +99,22 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
     ["Liquidity pressure", row.explainabilityBreakdown.liquidityPressure]
   ];
   const topDrivers = [...driverRows].sort((a, b) => b[1] - a[1]).slice(0, 2);
+  const setupStage = setupStageFromContext({
+    score: row.squeezeScore,
+    scoreDelta,
+    confidence: row.confidence,
+    confidenceDelta,
+    relativeVolume: row.relativeVolume,
+    catalystStatus: row.catalystStatus
+  });
+  const watchItems = interpretationWatchlist({
+    stage: setupStage,
+    relativeVolume: row.relativeVolume,
+    scoreDelta,
+    catalystStatus: row.catalystStatus,
+    optionsRatio: row.optionsVolumeRatio,
+    shortPressure: row.explainabilityBreakdown.shortPressure
+  });
 
   return (
     <main className="container page">
@@ -93,6 +156,17 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
           options {provenance.optionsVolumeRatio}, skew {provenance.callPutSkew}, float {provenance.floatSharesM},
           liquidity {provenance.liquidityTightness}
         </p>
+      </div>
+      <div className="card" style={{ marginBottom: "1rem" }}>
+        <h3 style={{ marginTop: 0 }}>Developing Opportunity Interpretation</h3>
+        <p style={{ marginTop: 0, color: "#b4c5dd" }}>
+          <strong>Current setup stage:</strong> {setupStage}. Fulcrum is optimized to flag setups while pressure is developing,
+          then track whether that development persists or invalidates over time.
+        </p>
+        <p style={{ marginBottom: "0.35rem", color: "#89a0bf" }}>What to monitor next</p>
+        {watchItems.map((item, idx) => (
+          <p key={`watch-${idx}`} style={{ margin: "0.25rem 0", color: "#b4c5dd" }}>- {item}</p>
+        ))}
       </div>
       <div className="card" style={{ marginBottom: "1rem" }}>
         <h3 style={{ marginTop: 0 }}>Explainability Breakdown</h3>
