@@ -34,6 +34,14 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
     getRecentScoreChangeEvents(row.symbol, 5)
   ]);
   const band = bandFromScore(row.squeezeScore);
+  const provenance = row.signalProvenance ?? {
+    shortInterestPctFloat: "fallback",
+    borrowFeePct: "fallback",
+    optionsVolumeRatio: "fallback",
+    callPutSkew: "fallback",
+    floatSharesM: "fallback",
+    liquidityTightness: "fallback"
+  };
   const scoreDelta = comparison.diff?.scoreDelta ?? 0;
   const confidenceDelta = comparison.diff?.confidenceDelta ?? 0;
   const driverRows: Array<[string, number]> = [
@@ -81,9 +89,9 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
         <p style={{ marginBottom: "0.25rem", textTransform: "capitalize" }}><strong>Catalyst:</strong> {row.catalystStatus}</p>
         <p style={{ marginTop: 0, color: "#b4c5dd" }}>{row.catalystSummary}</p>
         <p style={{ marginBottom: "0.25rem", textTransform: "capitalize" }}>
-          <strong>Signal Provenance:</strong> short {row.signalProvenance.shortInterestPctFloat}, borrow {row.signalProvenance.borrowFeePct},
-          options {row.signalProvenance.optionsVolumeRatio}, skew {row.signalProvenance.callPutSkew}, float {row.signalProvenance.floatSharesM},
-          liquidity {row.signalProvenance.liquidityTightness}
+          <strong>Signal Provenance:</strong> short {provenance.shortInterestPctFloat}, borrow {provenance.borrowFeePct},
+          options {provenance.optionsVolumeRatio}, skew {provenance.callPutSkew}, float {provenance.floatSharesM},
+          liquidity {provenance.liquidityTightness}
         </p>
       </div>
       <div className="card" style={{ marginBottom: "1rem" }}>
