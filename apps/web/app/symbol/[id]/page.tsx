@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getScoreById } from "../../../lib/db";
+import { getCurrentVsPrevious, getScoreById } from "../../../lib/db";
 import { riskBandFromScore } from "../../../lib/intel/riskBand";
+import { opportunityStage, watchNextBullets } from "../../../lib/intel/symbolBrief";
 
 export default async function SymbolPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -9,6 +10,9 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
 
   const band = riskBandFromScore(row.squeezeScore);
   const provenanceEntries = Object.entries(row.signalProvenance) as Array<[string, string]>;
+  const { diff } = await getCurrentVsPrevious(row.symbol);
+  const stage = opportunityStage(row, diff);
+  const watchNext = watchNextBullets(row, diff);
 
   return (
     <main className="container" style={{ padding: "2rem 0 3rem 0" }}>
@@ -19,6 +23,20 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
       <p style={{ color: "#89a0bf", marginTop: 0 }}>
         {row.companyName} — {row.region} / {row.exchange} — data origin: <strong>{row.dataOrigin}</strong>
       </p>
+
+      <div className="card" style={{ marginBottom: "1rem" }}>
+        <h3 style={{ marginTop: 0 }}>Developing opportunity</h3>
+        <p style={{ margin: "0.35rem 0 0.5rem", color: "#d9e2f2", fontWeight: 600 }}>{stage.label}</p>
+        <p style={{ margin: "0 0 0.85rem", color: "#89a0bf", fontSize: "0.92rem" }}>{stage.blurb}</p>
+        <p style={{ margin: 0, color: "#89a0bf", fontSize: "0.82rem", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          What to monitor next
+        </p>
+        <ul style={{ margin: "0.45rem 0 0", paddingLeft: "1.1rem", color: "#b5c6de" }}>
+          {watchNext.map((line) => (
+            <li key={line} style={{ marginBottom: "0.35rem" }}>{line}</li>
+          ))}
+        </ul>
+      </div>
 
       <div className="card" style={{ marginBottom: "1rem" }}>
         <h3 style={{ marginTop: 0 }}>Market snapshot</h3>

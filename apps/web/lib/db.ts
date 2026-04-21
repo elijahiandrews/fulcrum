@@ -14,10 +14,11 @@ import {
   getRecentSnapshots
 } from "./intel/history";
 import { getTrackedUniverseSummary } from "./intel/universe";
+import { buildRankedActions, type DataToActionItem } from "./intel/dataToAction";
 import { AlertMemoryRecord, FulcrumAlert, SnapshotChangeEvent, SymbolIntel, SymbolSnapshot } from "./intel/types";
 import { LiveStatusScenario } from "./api/live-status";
 
-export type { SymbolIntel, FulcrumAlert, SymbolSnapshot, AlertMemoryRecord };
+export type { SymbolIntel, FulcrumAlert, SymbolSnapshot, AlertMemoryRecord, DataToActionItem };
 
 export type ScoreRow = SymbolIntel;
 
@@ -39,7 +40,7 @@ export interface RegionMonitorRow {
 }
 
 const regionPressureNotes: Record<RegionMonitorRow["region"], string> = {
-  US: "US tape shows repeated options-led convexity spikes in tighter-float names on the Fulcrum book.",
+  US: "US tape shows repeated options-led convexity spikes in tighter-float names on the monitored book.",
   Europe: "European coverage is selective: post-headline liquidity pockets drive most of the squeeze-style pressure.",
   Asia: "Asia session risk clusters around gamma-sensitive strikes and event-linked hedging flows."
 };
@@ -152,6 +153,12 @@ export async function getCoverageSummary() {
     ...summary,
     fulcrumProductDatasetSymbols: FULCRUM_DATASET_SYMBOL_COUNT
   };
+}
+
+/** Ranked actionable items only; empty when no signal clears the action gate. */
+export async function getDataToActionItems(limit = 8): Promise<DataToActionItem[]> {
+  const rows = await getSymbolIntelDataset();
+  return buildRankedActions(rows, limit);
 }
 
 export async function getLiveStatusForScenario(scenario?: LiveStatusScenario) {

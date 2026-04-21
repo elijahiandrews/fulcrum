@@ -1,8 +1,8 @@
-# Fulcrum
+# Fulcrum Intelligence
 
 See the pressure before the move.
 
-Fulcrum is a squeeze-risk intelligence engine for discretionary trading desks, multi-manager teams, and risk operators. It identifies emerging squeeze-risk conditions with explainable scoring and source provenance—so teams can act before consensus reprices, not just browse another data feed.
+Fulcrum Intelligence is a squeeze-risk outcome engine for discretionary trading desks, multi-manager teams, and risk operators. It identifies emerging squeeze-risk conditions with explainable scoring and source provenance—so teams can act before consensus reprices, not just browse another data feed.
 
 ## Stack
 
