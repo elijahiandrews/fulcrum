@@ -8,7 +8,7 @@ export default async function DataToActionPage() {
   return (
     <main className="container" style={{ padding: "2rem 0 3rem 0", maxWidth: "42rem" }}>
       <h2 style={{ marginBottom: "0.35rem" }}>Data to action</h2>
-      <p style={{ color: "#89a0bf", marginTop: 0 }}>
+      <p style={{ color: "var(--muted)", marginTop: 0 }}>
         Raw coverage is normalized and scored upstream; this view keeps only names that pass an action gate, ranked by
         squeeze pressure vs. confidence.
       </p>
@@ -17,16 +17,16 @@ export default async function DataToActionPage() {
       </p>
 
       {items.length === 0 ? (
-        <p className="card" style={{ margin: 0, padding: "1rem 1.1rem", color: "#b5c6de" }}>
+        <p className="card" style={{ margin: 0, padding: "1rem 1.1rem", color: "var(--muted2)" }}>
           No actionable signals under current thresholds. Check back after the next snapshot refresh.
         </p>
       ) : (
         <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {items.map((row) => (
             <li key={row.symbol} className="card" style={{ marginBottom: "1rem", padding: "1rem 1.15rem" }}>
-              <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.8rem", color: "#89a0bf" }}>
+              <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.8rem", color: "var(--muted)" }}>
                 Rank {row.rank} ·{" "}
-                <Link href={`/symbol/${encodeURIComponent(row.symbol)}`} style={{ color: "#d9e2f2", fontWeight: 600 }}>
+                <Link href={`/symbol/${encodeURIComponent(row.symbol)}`} style={{ color: "var(--text)", fontWeight: 600 }}>
                   {row.symbol}
                 </Link>{" "}
                 · {row.region}

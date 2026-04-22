@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 
 const NAV = [
   { href: "/platform", label: "Platform" },
-  { href: "/actions", label: "Actions" },
   { href: "/regional-monitor", label: "Regional Monitor" },
   { href: "/alerts-center", label: "Alerts Center" },
   { href: "/request-access", label: "Request Access" }
@@ -13,7 +12,6 @@ const NAV = [
 
 function navActive(pathname: string, href: string): boolean {
   if (href === "/platform" && pathname.startsWith("/symbol")) return true;
-  if (href === "/actions" && pathname.startsWith("/symbol")) return false;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -23,23 +21,27 @@ export function BrandHeader() {
   return (
     <header className="site-header">
       <div className="container site-header-inner">
-        <div className="site-header-brand">
+        <div className="site-header-start">
           <Link href="/" className="brand-block brand-block-logo-only" aria-label="Fulcrum Intelligence home">
             <img src="/fulcrum-mark.svg" alt="" width={28} height={28} aria-hidden />
           </Link>
+          <nav className="main-nav" aria-label="Primary">
+            {NAV.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                prefetch={href === "/request-access"}
+                className={`nav-link${navActive(pathname, href) ? " nav-link-active" : ""}`}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
         </div>
-        <nav className="main-nav main-nav-center" aria-label="Primary">
-          {NAV.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`nav-link${navActive(pathname, href) ? " nav-link-active" : ""}`}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <div className="site-header-trail" aria-hidden="true" />
+        <div className="intel-status" title="Fulcrum intelligence stack — snapshot refresh cadence">
+          <span className="intel-status-dot" />
+          <span className="intel-status-label">Uplink · stack live</span>
+        </div>
       </div>
     </header>
   );

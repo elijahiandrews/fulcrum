@@ -2,6 +2,17 @@
 
 Use this checklist to make Fulcrum reachable at a stable public URL even when local development machines are off.
 
+## 0) Design / UI updates — keep Vercel in sync with local
+
+Vercel **only** deploys what is in **Git**. It does not mirror your machine automatically. To put the same design you see locally on the public site:
+
+1. From the **monorepo root**, run a production build: `pnpm --filter @squeeze/web build` and fix any errors.
+2. **Commit** the changes and **push** to the branch Vercel uses for **Production** (most teams use `main`). Opening a PR and merging into that branch also triggers a production deploy.
+3. Confirm the deployment in **Vercel → Deployments** (status **Ready**, commit SHA matches your work), then open your production URL and spot-check `/` and any routes you changed.
+4. Optional: push a **feature branch** first; Vercel creates a **Preview** URL so you can review before merging to production.
+
+If production still looks old, check **Vercel → Project → Settings → Git** (correct repo and production branch) and that you pushed to that branch, not only a local or fork branch.
+
 ## 1) Repo + Host Setup
 
 - [ ] Push latest `main` to GitHub

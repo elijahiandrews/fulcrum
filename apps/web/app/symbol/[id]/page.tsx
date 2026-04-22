@@ -1,42 +1,24 @@
 import Link from "next/link";
-import { getCurrentVsPrevious, getScoreById } from "../../../lib/db";
+import { getScoreById } from "../../../lib/db";
 import { riskBandFromScore } from "../../../lib/intel/riskBand";
-import { opportunityStage, watchNextBullets } from "../../../lib/intel/symbolBrief";
 
 export default async function SymbolPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const row = await getScoreById(id);
-  if (!row) return <main className="container" style={{ padding: "2rem 0" }}>No data for symbol.</main>;
+  if (!row) return <main className="container page" style={{ padding: "2rem 0" }}>No data for symbol.</main>;
 
   const band = riskBandFromScore(row.squeezeScore);
   const provenanceEntries = Object.entries(row.signalProvenance) as Array<[string, string]>;
-  const { diff } = await getCurrentVsPrevious(row.symbol);
-  const stage = opportunityStage(row, diff);
-  const watchNext = watchNextBullets(row, diff);
 
   return (
-    <main className="container" style={{ padding: "2rem 0 3rem 0" }}>
+    <main className="container page" style={{ padding: "2rem 0 3rem 0" }}>
       <p style={{ marginBottom: "1rem" }}>
         <Link href="/platform" className="chip">Back to platform</Link>
       </p>
       <h2 style={{ marginBottom: "0.25rem" }}>{row.symbol} Intelligence Brief</h2>
-      <p style={{ color: "#89a0bf", marginTop: 0 }}>
+      <p style={{ color: "var(--muted)", marginTop: 0 }}>
         {row.companyName} — {row.region} / {row.exchange} — data origin: <strong>{row.dataOrigin}</strong>
       </p>
-
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>Developing opportunity</h3>
-        <p style={{ margin: "0.35rem 0 0.5rem", color: "#d9e2f2", fontWeight: 600 }}>{stage.label}</p>
-        <p style={{ margin: "0 0 0.85rem", color: "#89a0bf", fontSize: "0.92rem" }}>{stage.blurb}</p>
-        <p style={{ margin: 0, color: "#89a0bf", fontSize: "0.82rem", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-          What to monitor next
-        </p>
-        <ul style={{ margin: "0.45rem 0 0", paddingLeft: "1.1rem", color: "#b5c6de" }}>
-          {watchNext.map((line) => (
-            <li key={line} style={{ marginBottom: "0.35rem" }}>{line}</li>
-          ))}
-        </ul>
-      </div>
 
       <div className="card" style={{ marginBottom: "1rem" }}>
         <h3 style={{ marginTop: 0 }}>Market snapshot</h3>
@@ -64,7 +46,7 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
       <div className="card" style={{ marginBottom: "1rem" }}>
         <h3 style={{ marginTop: 0 }}>Catalyst</h3>
         <p style={{ margin: "0.35rem 0" }}><strong>Status:</strong> {row.catalystStatus}</p>
-        <p style={{ margin: "0.35rem 0", color: "#b5c6de" }}>{row.catalystSummary}</p>
+        <p style={{ margin: "0.35rem 0", color: "var(--muted2)" }}>{row.catalystSummary}</p>
       </div>
 
       <div className="card" style={{ marginBottom: "1rem" }}>
@@ -81,24 +63,24 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
         <h3 style={{ marginTop: 0 }}>Explainability breakdown (model channels, 0–100)</h3>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
           <tbody>
-            <tr style={{ borderTop: "1px solid #1e2a3f" }}>
-              <td style={{ padding: "0.45rem 0", color: "#89a0bf" }}>Short / float pressure</td>
+            <tr style={{ borderTop: "1px solid rgba(15, 23, 42, 0.1)" }}>
+              <td style={{ padding: "0.45rem 0", color: "var(--muted)" }}>Short / float pressure</td>
               <td style={{ padding: "0.45rem 0" }}>{row.explainabilityBreakdown.shortPressure.toFixed(1)}</td>
             </tr>
-            <tr style={{ borderTop: "1px solid #1e2a3f" }}>
-              <td style={{ padding: "0.45rem 0", color: "#89a0bf" }}>Options surface pressure</td>
+            <tr style={{ borderTop: "1px solid rgba(15, 23, 42, 0.1)" }}>
+              <td style={{ padding: "0.45rem 0", color: "var(--muted)" }}>Options surface pressure</td>
               <td style={{ padding: "0.45rem 0" }}>{row.explainabilityBreakdown.optionsPressure.toFixed(1)}</td>
             </tr>
-            <tr style={{ borderTop: "1px solid #1e2a3f" }}>
-              <td style={{ padding: "0.45rem 0", color: "#89a0bf" }}>Volume regime pressure</td>
+            <tr style={{ borderTop: "1px solid rgba(15, 23, 42, 0.1)" }}>
+              <td style={{ padding: "0.45rem 0", color: "var(--muted)" }}>Volume regime pressure</td>
               <td style={{ padding: "0.45rem 0" }}>{row.explainabilityBreakdown.volumePressure.toFixed(1)}</td>
             </tr>
-            <tr style={{ borderTop: "1px solid #1e2a3f" }}>
-              <td style={{ padding: "0.45rem 0", color: "#89a0bf" }}>Catalyst pressure</td>
+            <tr style={{ borderTop: "1px solid rgba(15, 23, 42, 0.1)" }}>
+              <td style={{ padding: "0.45rem 0", color: "var(--muted)" }}>Catalyst pressure</td>
               <td style={{ padding: "0.45rem 0" }}>{row.explainabilityBreakdown.catalystPressure.toFixed(1)}</td>
             </tr>
-            <tr style={{ borderTop: "1px solid #1e2a3f" }}>
-              <td style={{ padding: "0.45rem 0", color: "#89a0bf" }}>Liquidity / float pressure</td>
+            <tr style={{ borderTop: "1px solid rgba(15, 23, 42, 0.1)" }}>
+              <td style={{ padding: "0.45rem 0", color: "var(--muted)" }}>Liquidity / float pressure</td>
               <td style={{ padding: "0.45rem 0" }}>{row.explainabilityBreakdown.liquidityPressure.toFixed(1)}</td>
             </tr>
           </tbody>
@@ -107,7 +89,7 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
 
       <div className="card" style={{ marginBottom: "1rem" }}>
         <h3 style={{ marginTop: 0 }}>Narrative explanation</h3>
-        <ul style={{ margin: 0, paddingLeft: "1.1rem", color: "#b5c6de" }}>
+        <ul style={{ margin: 0, paddingLeft: "1.1rem", color: "var(--muted2)" }}>
           {row.explanation.map((line, i) => (
             <li key={i} style={{ marginBottom: "0.35rem" }}>{line}</li>
           ))}
@@ -116,7 +98,7 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Field provenance</h3>
-        <p style={{ color: "#89a0bf", fontSize: "0.88rem", marginTop: 0 }}>
+        <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginTop: 0 }}>
           live = vendor/direct; proxy = model-estimated from tape; fallback = seeded until worker fills the channel.
         </p>
         {provenanceEntries.map(([field, state]) => (
@@ -124,7 +106,7 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
             <strong>{field}</strong> — {state}
           </p>
         ))}
-        <p style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "#89a0bf" }}>
+        <p style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "var(--muted)" }}>
           Live-backed UI fields this pass: {row.liveFieldCoverage.length ? row.liveFieldCoverage.join(", ") : "none (full seed/hybrid)"}
         </p>
       </div>
