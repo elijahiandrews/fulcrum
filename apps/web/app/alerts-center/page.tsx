@@ -41,7 +41,7 @@ export default async function AlertsCenterPage() {
         </h2>
         {activeAlerts.length === 0 ? <p style={{ marginTop: 0, color: "var(--muted)" }}>No active alerts at current thresholds.</p> : null}
         {activeAlerts.map((a) => (
-          <div key={a.id} style={{ padding: "0.75rem 0", borderTop: "1px solid var(--panel-border)" }}>
+          <div key={a.id} className="alert-feed-item">
             <div style={{ display: "flex", justifyContent: "space-between", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
               <p style={{ margin: 0 }}>
                 <strong>{a.symbol}</strong> — {a.companyName}
@@ -68,7 +68,7 @@ export default async function AlertsCenterPage() {
           <p style={{ marginTop: 0, color: "var(--muted)" }}>No resolved or downgraded alerts in the current memory window.</p>
         ) : null}
         {historicalAlerts.map((a) => (
-          <div key={a.id} style={{ padding: "0.75rem 0", borderTop: "1px solid var(--panel-border)" }}>
+          <div key={a.id} className="alert-feed-item">
             <div style={{ display: "flex", justifyContent: "space-between", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
               <p style={{ margin: 0 }}>
                 <strong>{a.symbol}</strong> — {a.companyName}

@@ -82,8 +82,8 @@ export function FulcrumBrainViz({
             <stop offset="100%" stopColor="rgba(15, 23, 42, 0.25)" />
           </linearGradient>
           <linearGradient id={`${p}-core`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
-            <stop offset="100%" stopColor="rgba(241,245,249,0.95)" />
+            <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.98)" />
           </linearGradient>
           <linearGradient id={`${p}-merge`} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(13,148,136,0.35)" />

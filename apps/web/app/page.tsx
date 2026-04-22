@@ -4,6 +4,9 @@ import { getLatestScores } from "../lib/db";
 import type { ExplainabilityBreakdown } from "../lib/intel/types";
 import { riskBandFromScore } from "../lib/intel/riskBand";
 
+/** ISR: reuse cached HTML for the shell; intel snapshot inside still refreshes per revalidate window. */
+export const revalidate = 120;
+
 export default async function LandingPage() {
   const rows = await getLatestScores();
   const n = Math.max(rows.length, 1);
@@ -44,36 +47,6 @@ export default async function LandingPage() {
 
   return (
     <main className="container page landing-page">
-      <section className="product-desc-bar" aria-labelledby="product-desc-heading">
-        <div className="chip product-desc-chip">GSI · Fulcrum Intelligence</div>
-        <h2 id="product-desc-heading" className="product-desc-headline">
-          Spot emerging short squeeze conditions before the market fully reprices them.
-        </h2>
-        <p className="product-desc-body">
-          Fulcrum Intelligence monitors market structure, positioning pressure, catalyst activity, and cross-market anomalies to identify
-          squeeze-risk setups in real time. Built for traders, funds, and intelligence-led operators who need explainable pressure — not
-          another noisy scanner.
-        </p>
-        <p className="product-desc-surfaces">
-          <span className="product-desc-surfaces-label">Product surfaces</span>
-          <Link href="/platform" prefetch={false}>
-            Platform
-          </Link>
-          <span className="product-desc-dot" aria-hidden>
-            ·
-          </span>
-          <Link href="/regional-monitor" prefetch={false}>
-            Regional monitor
-          </Link>
-          <span className="product-desc-dot" aria-hidden>
-            ·
-          </span>
-          <Link href="/alerts-center" prefetch={false}>
-            Alerts center
-          </Link>
-        </p>
-      </section>
-
       <section className="landing-hero" aria-labelledby="landing-heading">
         <div className="landing-hero-viz">
           <FulcrumBrainViz
@@ -85,10 +58,14 @@ export default async function LandingPage() {
           />
         </div>
         <div className="landing-hero-overlay">
-          <div className="chip">Live fusion map</div>
+          <div className="chip chip--ambient">Live fusion map</div>
           <h1 id="landing-heading" className="page-title hud-title-glow landing-hero-title">
-            The Fulcrum stack — ingest, signal lanes, fusion, output.
+            Ingest, fuse, and explain squeeze pressure before the tape fully reprices.
           </h1>
+          <p className="landing-hero-lede">
+            Fulcrum evaluates positioning, derivatives, liquidity, and catalyst channels into a single auditable score — with provenance and
+            input-age on every output.
+          </p>
           <div className="landing-hud-stats" role="group" aria-label="Live book snapshot">
             <div className="landing-hud-stat">
               <span className="landing-hud-stat-label">Monitor</span>
@@ -109,10 +86,10 @@ export default async function LandingPage() {
           </div>
           <div className="landing-cta">
             <Link href="/request-access" className="btn-primary">
-              Request Access
+              Request access
             </Link>
             <Link href="/platform" className="btn-secondary" prefetch={false}>
-              Open Platform
+              Open platform
             </Link>
           </div>
           <nav className="landing-quick-nav" aria-label="Product areas">
@@ -133,6 +110,35 @@ export default async function LandingPage() {
             </Link>
           </nav>
         </div>
+      </section>
+
+      <section className="product-desc-bar landing-after-hero card card--elevated" aria-labelledby="product-desc-heading">
+        <div className="chip product-desc-chip">GSI · Fulcrum Intelligence</div>
+        <h2 id="product-desc-heading" className="product-desc-headline">
+          Institutional-grade squeeze intelligence — calm interface, high signal.
+        </h2>
+        <p className="product-desc-body">
+          Built for analysts and decision-makers who need explainable pressure, not another noisy scanner. Cross-check structure, flow, and
+          catalyst context in one place.
+        </p>
+        <p className="product-desc-surfaces">
+          <span className="product-desc-surfaces-label">Surfaces</span>
+          <Link href="/platform" prefetch={false}>
+            Platform
+          </Link>
+          <span className="product-desc-dot" aria-hidden>
+            ·
+          </span>
+          <Link href="/regional-monitor" prefetch={false}>
+            Regional monitor
+          </Link>
+          <span className="product-desc-dot" aria-hidden>
+            ·
+          </span>
+          <Link href="/alerts-center" prefetch={false}>
+            Alerts center
+          </Link>
+        </p>
       </section>
     </main>
   );

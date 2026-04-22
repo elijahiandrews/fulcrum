@@ -2,13 +2,17 @@
   "name": "squeeze-intelligence-platform",
   "private": true,
   "version": "0.1.0",
+  "packageManager": "pnpm@9.15.9",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
     "dev": "pnpm --filter @squeeze/web dev",
+    "dev:clean": "pnpm --filter @squeeze/web clean && pnpm --filter @squeeze/web dev",
+    "clean": "pnpm --filter @squeeze/web clean",
     "build": "pnpm --filter @squeeze/web build",
+    "build:clean": "pnpm --filter @squeeze/web build:clean",
     "start": "pnpm --filter @squeeze/web start",
     "db:up": "docker compose up -d postgres redis",
     "db:down": "docker compose down",

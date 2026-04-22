@@ -19,8 +19,24 @@ const rowBandClass = (band: ReturnType<typeof riskBandFromScore>): string => {
 };
 
 export function ScoreTable({ rows }: { rows: ScoreRow[] }) {
+  const lastRefresh = rows.reduce((latest, r) => {
+    const t = new Date(r.updatedAt).getTime();
+    return t > latest ? t : latest;
+  }, 0);
+
   return (
-    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+    <div className="card table-card card--quiet" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="card-header">
+        <div>
+          <h2 className="card-header-title">Composite intelligence table</h2>
+          <p className="card-header-meta">
+            Full book, sorted by squeeze score. Row tint reflects risk band; driver note summarizes the dominant channel.
+          </p>
+        </div>
+        <span className="chip">
+          {rows.length} symbols · refresh {lastRefresh ? new Date(lastRefresh).toLocaleTimeString() : "—"}
+        </span>
+      </div>
       <div className="table-scroll">
         <div className="intel-table-wrap">
           <table className="intel-table">
@@ -45,13 +61,13 @@ export function ScoreTable({ rows }: { rows: ScoreRow[] }) {
                 return (
                   <tr key={row.symbol} className={rowBandClass(band)}>
                     <td>
-                      <Link href={`/symbol/${row.symbol.toLowerCase()}`} style={{ fontWeight: 600 }}>
+                      <Link href={`/symbol/${row.symbol.toLowerCase()}`} className="intel-table-symbol">
                         {row.symbol}
                       </Link>
-                      <div style={{ color: "var(--muted)", fontSize: "0.78rem" }}>{row.companyName}</div>
+                      <div className="intel-table-sub">{row.companyName}</div>
                     </td>
                     <td className={`score-${band}`}>
-                      {row.squeezeScore.toFixed(1)} <span style={{ color: "var(--muted)", fontWeight: 500 }}>({band})</span>
+                      {row.squeezeScore.toFixed(1)} <span className="intel-table-band">({band})</span>
                     </td>
                     <td>{row.confidence.toFixed(0)}%</td>
                     <td>{row.explainabilityBreakdown.shortPressure.toFixed(1)}</td>
@@ -60,17 +76,17 @@ export function ScoreTable({ rows }: { rows: ScoreRow[] }) {
                     <td style={{ textTransform: "capitalize" }}>{row.catalystStatus}</td>
                     <td>
                       {row.floatSharesM.toFixed(0)}M float
-                      <div style={{ color: "var(--muted)", fontSize: "0.78rem", textTransform: "capitalize" }}>
+                      <div className="intel-table-sub" style={{ textTransform: "capitalize" }}>
                         {row.liquidityTightness} book
                       </div>
                     </td>
                     <td>
                       {freshnessLabel(row.sourceFreshnessMinutes, row.updatedAt)}
-                      <div style={{ color: "var(--muted)", fontSize: "0.78rem" }}>
+                      <div className="intel-table-sub">
                         {row.region} / {row.exchange}
                       </div>
                     </td>
-                    <td style={{ maxWidth: 340, color: "var(--muted2)", fontSize: "0.88rem" }}>{brief}</td>
+                    <td className="intel-table-note">{brief}</td>
                   </tr>
                 );
               })}

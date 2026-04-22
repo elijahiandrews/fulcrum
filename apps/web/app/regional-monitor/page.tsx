@@ -23,7 +23,7 @@ export default async function RegionalMonitorPage() {
         {rows.map((region) => {
           const avgBand = riskBandFromScore(region.averageSqueezeScore);
           return (
-            <article className="card" key={region.region}>
+            <article className="card card--interactive" key={region.region}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
                 <h2 className="section-title" style={{ marginBottom: "0.2rem" }}>
                   {region.region}

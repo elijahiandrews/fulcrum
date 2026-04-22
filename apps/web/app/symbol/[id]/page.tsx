@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExplainabilityBars } from "../../../components/ExplainabilityBars";
 import { getScoreById } from "../../../lib/db";
 import { riskBandFromScore } from "../../../lib/intel/riskBand";
 
@@ -11,105 +12,145 @@ export default async function SymbolPage({ params }: { params: Promise<{ id: str
   const provenanceEntries = Object.entries(row.signalProvenance) as Array<[string, string]>;
 
   return (
-    <main className="container page" style={{ padding: "2rem 0 3rem 0" }}>
-      <p style={{ marginBottom: "1rem" }}>
-        <Link href="/platform" className="chip">Back to platform</Link>
-      </p>
-      <h2 style={{ marginBottom: "0.25rem" }}>{row.symbol} Intelligence Brief</h2>
-      <p style={{ color: "var(--muted)", marginTop: 0 }}>
-        {row.companyName} — {row.region} / {row.exchange} — data origin: <strong>{row.dataOrigin}</strong>
-      </p>
+    <main className="container page symbol-page">
+      <nav className="symbol-back" aria-label="Breadcrumb">
+        <Link href="/platform" className="chip">
+          ← Platform
+        </Link>
+      </nav>
 
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>Market snapshot</h3>
-        <p style={{ margin: "0.35rem 0" }}><strong>Price:</strong> {row.price.toFixed(2)}</p>
-        <p style={{ margin: "0.35rem 0" }}><strong>1D move:</strong> {row.move1D.toFixed(2)}%</p>
-        <p style={{ margin: "0.35rem 0" }}><strong>Volume (shares):</strong> {row.volume.toLocaleString()}</p>
-        <p style={{ margin: "0.35rem 0" }}><strong>Relative volume:</strong> {row.relativeVolume.toFixed(2)}x vs baseline</p>
-        <p style={{ margin: "0.35rem 0" }}><strong>Updated:</strong> {new Date(row.updatedAt).toLocaleString()}</p>
+      <div className="symbol-hero">
+        <article className="card card--elevated symbol-hero-main">
+          <p className="symbol-hero-eyebrow">Symbol intelligence brief</p>
+          <h1 className="symbol-hero-title">{row.symbol}</h1>
+          <p className="symbol-hero-meta">
+            {row.companyName}
+            <br />
+            <span>
+              {row.region} / {row.exchange} · origin <strong>{row.dataOrigin}</strong>
+            </span>
+          </p>
+          <div className="symbol-score-block">
+            <span className={`symbol-score-value score-${band}`}>{row.squeezeScore.toFixed(1)}</span>
+            <span className={`symbol-band-pill score-${band}`}>{band}</span>
+          </div>
+          <div className="confidence-meter">
+            <div className="confidence-meter-label">
+              <span>Model confidence</span>
+              <span>{row.confidence.toFixed(0)}%</span>
+            </div>
+            <div className="confidence-meter-track" role="presentation">
+              <div className="confidence-meter-fill" style={{ width: `${Math.min(100, Math.max(0, row.confidence))}%` }} />
+            </div>
+          </div>
+          <p className="freshness-line">
+            <span>Source freshness (worst channel)</span>
+            <span className="data-mono">~{row.sourceFreshnessMinutes}m</span>
+            <span aria-hidden>·</span>
+            <span>Snapshot</span>
+            <span className="data-mono">{new Date(row.updatedAt).toLocaleString()}</span>
+          </p>
+        </article>
+
+        <aside className="card card--inset symbol-hero-aside" aria-label="Price snapshot">
+          <h2 className="symbol-section-title">Market snapshot</h2>
+          <dl>
+            <div className="symbol-kv">
+              <dt>Price</dt>
+              <dd>{row.price.toFixed(2)}</dd>
+            </div>
+            <div className="symbol-kv">
+              <dt>1D move</dt>
+              <dd>{row.move1D.toFixed(2)}%</dd>
+            </div>
+            <div className="symbol-kv">
+              <dt>Volume</dt>
+              <dd>{row.volume.toLocaleString()}</dd>
+            </div>
+            <div className="symbol-kv">
+              <dt>Rel. volume</dt>
+              <dd>{row.relativeVolume.toFixed(2)}×</dd>
+            </div>
+          </dl>
+        </aside>
       </div>
 
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>Positioning & liquidity</h3>
-        <p style={{ margin: "0.35rem 0" }}><strong>Short interest (est. % of float):</strong> {row.shortInterestPctFloat.toFixed(1)}%</p>
-        <p style={{ margin: "0.35rem 0" }}><strong>Borrow fee (proxy, %):</strong> {row.borrowFeePct.toFixed(1)}%</p>
-        <p style={{ margin: "0.35rem 0" }}><strong>Float (M shares):</strong> {row.floatSharesM.toFixed(1)}</p>
-        <p style={{ margin: "0.35rem 0" }}><strong>Liquidity tightness:</strong> {row.liquidityTightness}</p>
+      <div className="symbol-grid">
+        <article className="card card--quiet">
+          <h2 className="symbol-section-title">Positioning & liquidity</h2>
+          <dl>
+            <div className="symbol-kv">
+              <dt>Short interest (est. % float)</dt>
+              <dd>{row.shortInterestPctFloat.toFixed(1)}%</dd>
+            </div>
+            <div className="symbol-kv">
+              <dt>Borrow fee (proxy)</dt>
+              <dd>{row.borrowFeePct.toFixed(1)}%</dd>
+            </div>
+            <div className="symbol-kv">
+              <dt>Float (M sh.)</dt>
+              <dd>{row.floatSharesM.toFixed(1)}</dd>
+            </div>
+            <div className="symbol-kv">
+              <dt>Liquidity</dt>
+              <dd style={{ textTransform: "capitalize" }}>{row.liquidityTightness}</dd>
+            </div>
+          </dl>
+        </article>
+        <article className="card card--quiet">
+          <h2 className="symbol-section-title">Derivatives</h2>
+          <dl>
+            <div className="symbol-kv">
+              <dt>Options vol vs 30D ADV</dt>
+              <dd>{row.optionsVolumeRatio.toFixed(2)}×</dd>
+            </div>
+            <div className="symbol-kv">
+              <dt>Call/put skew</dt>
+              <dd>{row.callPutSkew.toFixed(2)}</dd>
+            </div>
+          </dl>
+          <h2 className="symbol-section-title" style={{ marginTop: "1rem" }}>
+            Catalyst
+          </h2>
+          <p style={{ margin: 0, textTransform: "capitalize", fontWeight: 600 }}>{row.catalystStatus}</p>
+          <p style={{ margin: "0.45rem 0 0", color: "var(--muted2)", fontSize: "0.9rem", lineHeight: 1.55 }}>{row.catalystSummary}</p>
+        </article>
       </div>
 
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>Derivatives</h3>
-        <p style={{ margin: "0.35rem 0" }}><strong>Options volume vs 30D ADV:</strong> {row.optionsVolumeRatio.toFixed(2)}x</p>
-        <p style={{ margin: "0.35rem 0" }}><strong>Call/put skew:</strong> {row.callPutSkew.toFixed(2)}</p>
-      </div>
-
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>Catalyst</h3>
-        <p style={{ margin: "0.35rem 0" }}><strong>Status:</strong> {row.catalystStatus}</p>
-        <p style={{ margin: "0.35rem 0", color: "var(--muted2)" }}>{row.catalystSummary}</p>
-      </div>
-
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>Squeeze score</h3>
-        <p style={{ margin: 0 }}>
-          <strong>Squeeze score:</strong>{" "}
-          <span className={`score-${band}`}>{row.squeezeScore.toFixed(1)} ({band})</span>
+      <article className="card card--elevated" style={{ marginBottom: "1rem" }}>
+        <h2 className="symbol-section-title">Explainability — channel pressure</h2>
+        <p style={{ margin: "0 0 0.85rem", color: "var(--muted)", fontSize: "0.88rem", maxWidth: "72ch" }}>
+          Normalized 0–100 contributions from each model lane. Higher means that channel is adding more squeeze-style pressure in this snapshot.
         </p>
-        <p><strong>Confidence:</strong> {row.confidence.toFixed(0)}%</p>
-        <p><strong>Source freshness (worst channel):</strong> ~{row.sourceFreshnessMinutes} min</p>
-      </div>
+        <ExplainabilityBars breakdown={row.explainabilityBreakdown} />
+      </article>
 
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>Explainability breakdown (model channels, 0–100)</h3>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
-          <tbody>
-            <tr style={{ borderTop: "1px solid rgba(15, 23, 42, 0.1)" }}>
-              <td style={{ padding: "0.45rem 0", color: "var(--muted)" }}>Short / float pressure</td>
-              <td style={{ padding: "0.45rem 0" }}>{row.explainabilityBreakdown.shortPressure.toFixed(1)}</td>
-            </tr>
-            <tr style={{ borderTop: "1px solid rgba(15, 23, 42, 0.1)" }}>
-              <td style={{ padding: "0.45rem 0", color: "var(--muted)" }}>Options surface pressure</td>
-              <td style={{ padding: "0.45rem 0" }}>{row.explainabilityBreakdown.optionsPressure.toFixed(1)}</td>
-            </tr>
-            <tr style={{ borderTop: "1px solid rgba(15, 23, 42, 0.1)" }}>
-              <td style={{ padding: "0.45rem 0", color: "var(--muted)" }}>Volume regime pressure</td>
-              <td style={{ padding: "0.45rem 0" }}>{row.explainabilityBreakdown.volumePressure.toFixed(1)}</td>
-            </tr>
-            <tr style={{ borderTop: "1px solid rgba(15, 23, 42, 0.1)" }}>
-              <td style={{ padding: "0.45rem 0", color: "var(--muted)" }}>Catalyst pressure</td>
-              <td style={{ padding: "0.45rem 0" }}>{row.explainabilityBreakdown.catalystPressure.toFixed(1)}</td>
-            </tr>
-            <tr style={{ borderTop: "1px solid rgba(15, 23, 42, 0.1)" }}>
-              <td style={{ padding: "0.45rem 0", color: "var(--muted)" }}>Liquidity / float pressure</td>
-              <td style={{ padding: "0.45rem 0" }}>{row.explainabilityBreakdown.liquidityPressure.toFixed(1)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <h3 style={{ marginTop: 0 }}>Narrative explanation</h3>
-        <ul style={{ margin: 0, paddingLeft: "1.1rem", color: "var(--muted2)" }}>
+      <article className="card card--inset" style={{ marginBottom: "1rem" }}>
+        <h2 className="symbol-section-title">Narrative</h2>
+        <ul className="symbol-narrative">
           {row.explanation.map((line, i) => (
-            <li key={i} style={{ marginBottom: "0.35rem" }}>{line}</li>
+            <li key={i}>{line}</li>
           ))}
         </ul>
-      </div>
+      </article>
 
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Field provenance</h3>
-        <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginTop: 0 }}>
+      <article className="card">
+        <h2 className="symbol-section-title">Field provenance</h2>
+        <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginTop: 0, maxWidth: "85ch", lineHeight: 1.5 }}>
           live = vendor/direct; proxy = model-estimated from tape; fallback = seeded until worker fills the channel.
         </p>
-        {provenanceEntries.map(([field, state]) => (
-          <p key={field} style={{ margin: "0.35rem 0" }}>
-            <strong>{field}</strong> — {state}
-          </p>
-        ))}
-        <p style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "var(--muted)" }}>
+        <div className="provenance-grid">
+          {provenanceEntries.map(([field, state]) => (
+            <div key={field} className="provenance-item">
+              <strong>{field}</strong>
+              {state}
+            </div>
+          ))}
+        </div>
+        <p style={{ marginTop: "0.85rem", fontSize: "0.85rem", color: "var(--muted)" }}>
           Live-backed UI fields this pass: {row.liveFieldCoverage.length ? row.liveFieldCoverage.join(", ") : "none (full seed/hybrid)"}
         </p>
-      </div>
+      </article>
     </main>
   );
 }

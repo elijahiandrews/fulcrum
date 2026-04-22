@@ -38,6 +38,11 @@ If production still looks old, check **Vercel → Project → Settings → Git**
 6. **Access gate** (`FULCRUM_ACCESS_KEY`)  
    - Only affects **gated** routes (e.g. `/platform`), **not** the homepage `/`. It won’t change global CSS for `/`.
 
+7. **Wrong `*.vercel.app` URL (e.g. still “blue” old UI)**  
+   - Each Vercel **project** has its own default `something.vercel.app` hostname. If you created a **new** project for `apps/web`, the **old** project URL still serves the old build until you delete it or stop using that link.  
+   - In **Vercel → your active project → Deployments**, open the latest production deployment and use **its** URL, or attach your **custom domain** to the correct project only.  
+   - Then: **Redeploy** with **Clear cache and redeploy**, and hard-refresh the browser.
+
 ## 1) Repo + Host Setup
 
 - [ ] Push latest `main` to GitHub

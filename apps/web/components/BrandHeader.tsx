@@ -22,8 +22,12 @@ export function BrandHeader() {
     <header className="site-header">
       <div className="container site-header-inner">
         <div className="site-header-start">
-          <Link href="/" className="brand-block brand-block-logo-only" aria-label="Fulcrum Intelligence home">
-            <img src="/fulcrum-mark.svg" alt="" width={28} height={28} aria-hidden />
+          <Link href="/" className="brand-block" aria-label="Fulcrum Intelligence home">
+            <img src="/fulcrum-mark.svg" alt="" width={30} height={30} aria-hidden />
+            <span className="brand-wordmark">
+              Fulcrum
+              <span className="brand-wordmark-sub">Intelligence</span>
+            </span>
           </Link>
           <nav className="main-nav" aria-label="Primary">
             {NAV.map(({ href, label }) => (

@@ -1,3 +1,4 @@
+import { IntelOperationsStrip } from "../../components/IntelOperationsStrip";
 import { ScoreTable } from "../../components/ScoreTable";
 import { getCoverageSummary, getLatestScores } from "../../lib/db";
 import { riskBandFromScore } from "../../lib/intel/riskBand";
@@ -17,32 +18,52 @@ export default async function PlatformPage() {
       <div className="terminal-bar">
         <div>
           <div className="terminal-kicker">Fulcrum Intelligence</div>
-          <h1 className="page-title" style={{ fontSize: "1.85rem", marginBottom: 0 }}>
-            Platform — monitored squeeze book
-          </h1>
+          <h1 className="page-title">Platform — monitored squeeze book</h1>
         </div>
         <span className="chip">Ranked by composite squeeze score</span>
       </div>
       <p className="page-subtitle">
-        Unified model: positioning, derivatives, tape, catalyst, and liquidity features scored into an explainable index — with
-        provenance and input-age on every row.
+        Unified model: positioning, derivatives, tape, catalyst, and liquidity features scored into an explainable index — with provenance and
+        input-age on every row.
       </p>
-      <div className="meta-row">
-        <span className="chip">
-          {coverage.activeTrackedSymbols} active / {coverage.totalTrackedSymbols} tracked
-        </span>
-        <span className="chip">
-          {criticalCount} critical / {highCount} high
-        </span>
-        <span className="chip">{avgScore.toFixed(1)} avg score</span>
-        <span className="chip">{avgConfidence.toFixed(0)}% avg confidence</span>
-        <span className="chip">{avgFreshness.toFixed(0)}m avg input age</span>
+      <div className="metric-strip" aria-label="Book summary">
+        <div className="metric-tile">
+          <div className="metric-tile-label">Coverage</div>
+          <div className="metric-tile-value">
+            {coverage.activeTrackedSymbols} / {coverage.totalTrackedSymbols}
+          </div>
+        </div>
+        <div className="metric-tile">
+          <div className="metric-tile-label">Critical / high</div>
+          <div className="metric-tile-value">
+            {criticalCount} / {highCount}
+          </div>
+        </div>
+        <div className="metric-tile">
+          <div className="metric-tile-label">Avg score</div>
+          <div className="metric-tile-value">{avgScore.toFixed(1)}</div>
+        </div>
+        <div className="metric-tile">
+          <div className="metric-tile-label">Avg confidence</div>
+          <div className="metric-tile-value">{avgConfidence.toFixed(0)}%</div>
+        </div>
+        <div className="metric-tile">
+          <div className="metric-tile-label">Avg input age</div>
+          <div className="metric-tile-value">{avgFreshness.toFixed(0)}m</div>
+        </div>
         {topSector ? (
-          <span className="chip">
-            Top sector: {topSector[0]} ({topSector[1]})
-          </span>
+          <div className="metric-tile">
+            <div className="metric-tile-label">Top sector</div>
+            <div className="metric-tile-value" style={{ fontSize: "0.95rem" }}>
+              {topSector[0]}{" "}
+              <span style={{ color: "var(--muted)", fontWeight: 500 }}>({topSector[1]})</span>
+            </div>
+          </div>
         ) : null}
       </div>
+
+      <IntelOperationsStrip rows={rows} />
+
       <ScoreTable rows={rows} />
     </main>
   );
