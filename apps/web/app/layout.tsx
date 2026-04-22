@@ -25,8 +25,9 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const deploymentSha = process.env.VERCEL_GIT_COMMIT_SHA ?? "";
   return (
-    <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`} data-deployment-sha={deploymentSha}>
       <body className="cortex-body hud-skin">
         <CortexBackdrop />
         <BrandHeader />

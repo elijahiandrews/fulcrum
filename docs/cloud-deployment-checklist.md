@@ -13,6 +13,31 @@ Vercel **only** deploys what is in **Git**. It does not mirror your machine auto
 
 If production still looks old, check **Vercel → Project → Settings → Git** (correct repo and production branch) and that you pushed to that branch, not only a local or fork branch.
 
+### When production doesn’t look like `localhost:3000`
+
+`next dev` and the Vercel build are **not identical** (different bundling, caching, fonts). Use this order:
+
+1. **Confirm the same commit is live**  
+   - Vercel → **Deployments** → open the production deployment → note the **Git commit** (or in the browser, **Inspect** → `<html>` has `data-deployment-sha="…"`; it should match `git rev-parse HEAD` on the branch you deploy from).  
+   - If the SHA differs, you’re not looking at the code you think you shipped.
+
+2. **Rule out stale assets in the browser**  
+   - Hard refresh (**Ctrl+Shift+R**), or open the site in a **private/incognito** window. CDNs and the browser cache can show an older CSS/JS bundle.
+
+3. **Match “real” production locally** (closest to Vercel)  
+   - From monorepo root: `pnpm --filter @squeeze/web build` then `pnpm --filter @squeeze/web start` and open `http://localhost:3000`.  
+   - If **this** matches Vercel but `pnpm dev` does not, differences are dev-server/HMR noise, not the deploy.
+
+4. **Vercel project shape**  
+   - **Root Directory** must be **`apps/web`** for this repo layout.  
+   - If the root is wrong, you may be deploying an old or partial tree.
+
+5. **Force a clean build on Vercel**  
+   - **Deployments** → **⋯** on the latest → **Redeploy** → enable **Clear cache and redeploy** if styles/assets look one deploy behind.
+
+6. **Access gate** (`FULCRUM_ACCESS_KEY`)  
+   - Only affects **gated** routes (e.g. `/platform`), **not** the homepage `/`. It won’t change global CSS for `/`.
+
 ## 1) Repo + Host Setup
 
 - [ ] Push latest `main` to GitHub
